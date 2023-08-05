@@ -12,6 +12,13 @@
 namespace noarr {
 
 struct planner_emptying_t {
+	using signature = scalar_sig<void>;
+
+	template<class NewOrder>
+	constexpr auto order(NewOrder) const noexcept {
+		return *this;
+	}
+
 	template<class Planner>
 	constexpr void operator()(Planner planner) = delete;
 };
@@ -112,7 +119,7 @@ struct planner_t<union_t<Structs...>, Order, Ending> : contain<union_t<Structs..
 		return planner_t<union_struct, decltype(get_order() ^ new_order), decltype(get_ending().order(new_order))>(get_union(), get_order() ^ new_order, get_ending().order(new_order));
 	}
 
-	template<class F> requires (std::same_as<Ending, empty_t>)
+	template<class F> requires (std::same_as<Ending, planner_emptying_t>)
 	constexpr auto for_each(F f) const noexcept {
 		using signature = typename decltype(get_union())::signature;
 		return planner_t<union_struct, Order, planner_ending_t<signature, F>>(get_union(), get_order(), planner_ending_t<signature, F>(f));
@@ -131,7 +138,7 @@ struct planner_t<union_t<Structs...>, Order, Ending> : contain<union_t<Structs..
 		return planner_t<union_struct, Order, planner_action_t<dim_seq, F, Ending>>(get_union(), get_order(), planner_action_t<dim_seq, F, Ending>(f, get_ending()));
 	}
 
-	constexpr void operator()() const noexcept requires (!std::same_as<Ending, empty_t>) {
+	constexpr void operator()() const noexcept requires (!std::same_as<Ending, planner_emptying_t>) {
 		using dim_tree = sig_dim_tree<typename decltype(top_struct())::signature>;
 		for_each_impl(dim_tree(), dim_sequence<>(), empty_state);
 	}
@@ -175,7 +182,7 @@ constexpr auto planner(const Ts &... s) noexcept
 { return planner(make_union(s.get_ref()...)); }
 
 template<class... Ts>
-constexpr planner_t<union_t<Ts...>, neutral_proto, empty_t> planner(union_t<Ts...> u) noexcept { return planner_t<union_t<Ts...>, neutral_proto, empty_t>(u, neutral_proto(), empty_t()); }
+constexpr planner_t<union_t<Ts...>, neutral_proto, planner_emptying_t> planner(union_t<Ts...> u) noexcept { return planner_t<union_t<Ts...>, neutral_proto, planner_emptying_t>(u, neutral_proto(), planner_emptying_t()); }
 
 } // namespace noarr
 
