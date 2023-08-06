@@ -6,6 +6,8 @@
 #include "../base/state.hpp"
 #include "../base/structs_common.hpp"
 #include "../base/utility.hpp"
+#include "../structs/views.hpp"
+#include "../structs/setters.hpp"
 #include "../extra/sig_utils.hpp"
 #include "../extra/traverser.hpp"
 
@@ -40,20 +42,20 @@ struct planner_ending_t {
 	}
 
 	template<class Planner>
-	constexpr void operator()(Planner planner) noexcept {
+	constexpr void operator()(Planner planner) const noexcept {
 		run(planner, std::make_index_sequence<Planner::num_structs>());
 	}
 
 private:
 	template<class Planner, std::size_t... Idxs>
-    constexpr void run(Planner planner, std::index_sequence<Idxs...>) noexcept
+    constexpr void run(Planner planner, std::index_sequence<Idxs...>) const noexcept
 	requires (requires(F f) { f(planner.template get_struct<Idxs>()[planner.state()]...); })
 	{
 		f_(planner.template get_struct<Idxs>()[planner.state()]...);
 	}
 
 	template<class Planner, std::size_t... Idxs>
-    constexpr void run(Planner planner, std::index_sequence<Idxs...>) noexcept
+    constexpr void run(Planner planner, std::index_sequence<Idxs...>) const noexcept
 	requires (requires(F f) { f(planner.state(), planner.template get_struct<Idxs>()[planner.state()]...); })
 	{
 		f_(planner.state(), planner.template get_struct<Idxs>()[planner.state()]...);
@@ -80,7 +82,7 @@ struct planner_action_t {
 		return planner_action_t<typename decltype(sigholder_t() ^ new_order)::signature, F, decltype(next_.order(new_order))>(f_, next_.order(new_order));
 	}
 
-	constexpr next get_next() const noexcept { return next_; }
+	constexpr const next &get_next() const noexcept { return next_; }
 
 	template<class Planner>
 	constexpr void operator()(Planner planner) const noexcept {
@@ -116,9 +118,10 @@ struct planner_t<union_t<Structs...>, Order, Ending> : contain<union_t<Structs..
 
 	template<class NewOrder>
 	constexpr auto order(NewOrder new_order) const noexcept {
-		return planner_t<union_struct, decltype(get_order() ^ new_order), decltype(get_ending().order(new_order))>(get_union(), get_order() ^ new_order, get_ending().order(new_order));
+		return planner_t<union_struct, decltype(get_order() ^ new_order), Ending>(get_union(), get_order() ^ new_order, get_ending());
 	}
 
+	// TODO: for_each after for_sections
 	template<class F> requires (std::same_as<Ending, planner_emptying_t>)
 	constexpr auto for_each(F f) const noexcept {
 		using signature = typename decltype(get_union())::signature;
@@ -129,18 +132,23 @@ struct planner_t<union_t<Structs...>, Order, Ending> : contain<union_t<Structs..
 		return planner_t<union_struct, Order, typename Ending::next>(get_union(), get_order(), get_ending().get_next());
 	}
 
+	// TODO: multiple for_sections
 	template<auto... Dims, class F> requires (... && IsDim<decltype(Dims)>)
 	constexpr auto for_sections(F f) const noexcept {
-		using dim_tree = dim_tree_restrict<sig_dim_tree<typename decltype(top_struct())::signature>, dim_sequence<Dims...>>;
-		static_assert((... && dim_tree_contains<Dims, dim_tree>), "Requested dimensions are not present");
-		using dim_seq = dim_tree_to_sequence<dim_tree>;
+		using union_sig = typename decltype(get_union())::signature;
+		struct sigholder_t {
+			using signature = union_sig;
+			static_assert(!always_false<signature>);
+		};
 
-		return planner_t<union_struct, Order, planner_action_t<dim_seq, F, Ending>>(get_union(), get_order(), planner_action_t<dim_seq, F, Ending>(f, get_ending()));
+		using signature = typename decltype(sigholder_t() ^ reorder<Dims...>())::signature;
+
+		return planner_t<union_struct, Order, planner_action_t<signature, F, Ending>>(get_union(), get_order(), planner_action_t<signature, F, Ending>(f, get_ending()));
 	}
 
 	constexpr void operator()() const noexcept requires (!std::same_as<Ending, planner_emptying_t>) {
 		using dim_tree = sig_dim_tree<typename decltype(top_struct())::signature>;
-		for_each_impl(dim_tree(), dim_sequence<>(), empty_state);
+		for_each_impl(dim_tree(), empty_state);
 	}
 
 	constexpr auto state() const noexcept {
@@ -152,27 +160,28 @@ struct planner_t<union_t<Structs...>, Order, Ending> : contain<union_t<Structs..
 	}
 
 private:
-	template<auto Dim, class Branch, class ...Branches, class F, std::size_t I, std::size_t... Is>
-	constexpr void for_each_impl_dep(F f, auto state, std::index_sequence<I, Is...>) const noexcept {
-		for_each_impl(Branch(), f, state.template with<index_in<Dim>>(std::integral_constant<std::size_t, I>()));
-		for_each_impl_dep<Dim, Branches...>(f, state, std::index_sequence<Is...>());
+	template<auto Dim, class Branch, class ...Branches, std::size_t I, std::size_t... Is>
+	constexpr void for_each_impl_dep(auto state, std::index_sequence<I, Is...>) const noexcept {
+		for_each_impl(Branch(), state.template with<index_in<Dim>>(std::integral_constant<std::size_t, I>()));
+		for_each_impl_dep<Dim, Branches...>(state, std::index_sequence<Is...>());
 	}
 	template<auto Dim, class F>
 	constexpr void for_each_impl_dep(F, auto, std::index_sequence<>) const noexcept {}
-	template<class DimTree, auto ...Dims, IsState State>
-	constexpr void for_each_impl(DimTree, dim_sequence<Dims...>, State state) const noexcept
-	requires (IsGroundSig<typename decltype(get_ending().order(fix(state)))::signature>) {
+	template<class DimTree, IsState State>
+	constexpr void for_each_impl(DimTree, State state) const noexcept
+	requires (IsGroundSig<typename decltype(get_ending().order(fix(order(fix(state)).state())))::signature>) {
 		get_ending()(order(fix(state))); // TODO: maybe run ending on reordered planner
 	}
-	template<auto Dim, class ...Branches, auto ...Dims, IsState State>
-	constexpr void for_each_impl(dim_tree<Dim, Branches...>, dim_sequence<Dims...>, State state) const noexcept {
+	template<auto Dim, class ...Branches, IsState State>
+	constexpr void for_each_impl(dim_tree<Dim, Branches...>, State state) const noexcept
+	requires (!IsGroundSig<typename decltype(get_ending().order(fix(order(fix(state)).state())))::signature>) {
 		using dim_sig = sig_find_dim<Dim, State, typename decltype(top_struct())::signature>;
 		if constexpr(dim_sig::dependent) {
-			for_each_impl_dep<Dim, Branches...>(dim_sequence<Dims..., Dim>(), state, std::index_sequence_for<Branches...>());
+			for_each_impl_dep<Dim, Branches...>(state, std::index_sequence_for<Branches...>());
 		} else {
 			std::size_t len = top_struct().template length<Dim>(state);
 			for(std::size_t i = 0; i < len; i++)
-				for_each_impl(Branches()..., dim_sequence<Dims..., Dim>(), state.template with<index_in<Dim>>(i));
+				for_each_impl(Branches()..., state.template with<index_in<Dim>>(i));
 		}
 	}
 };

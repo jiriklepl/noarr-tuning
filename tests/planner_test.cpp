@@ -58,7 +58,12 @@ TEST_CASE("Planner trivial", "[planner]") {
 	auto abc_plan = planner(a, b, c).for_each([&i](auto &&a, auto &&b, auto &&c) {
 		c += a * b;
 		i++;
-	});
+	}).template for_sections<'x', 'z'>([](auto inner) {
+		auto z = get_index<'z'>(inner.state());
+		auto x = get_index<'x'>(inner.state());
+
+		inner();
+	}).order(reorder<'x', 'z', 'y'>());
 
 	auto c_check_plan = planner(c).for_each([&i](auto &&c) {
 		REQUIRE(c == 1);
