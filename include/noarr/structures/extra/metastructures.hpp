@@ -101,7 +101,7 @@ struct interpret<Name, choice_t, Choices...> : contain<Choices...>  {
 		formatter.format(end);
 	}
 
-	constexpr decltype(auto) get() const noexcept {
+	constexpr decltype(auto) operator*() const noexcept {
 		return base::template get<0>();
 	}
 
@@ -120,7 +120,7 @@ struct interpret<Name, choice_t, Choices...> : contain<Choices...>  {
 	constexpr interpret(placeholder<Name>, choice_t, Choices &&...choices)
 		: base(std::forward<Choices>(choices)...) {}
 
-	constexpr decltype(auto) get() const noexcept {
+	constexpr decltype(auto) operator*() const noexcept {
 		return base::template get<Name::value.template get<0>()>();
 	}
 
@@ -158,7 +158,7 @@ struct interpret<Name, permutation_t, Choices...> : contain<Choices...>  {
 		formatter.format(end);
 	}
 
-	constexpr const base &get() const noexcept {
+	constexpr const base &operator*() const noexcept {
 		return *this;
 	}
 
@@ -176,7 +176,7 @@ struct interpret<Name, permutation_t, Choices...> : contain<Choices...>  {
 	constexpr interpret(placeholder<Name>, permutation_t, Choices &&...choices)
 		: base(std::forward<Choices>(choices)...) {}
 
-	constexpr const base &get() const noexcept {
+	constexpr const base &operator*() const noexcept {
 		return *this;
 	}
 
