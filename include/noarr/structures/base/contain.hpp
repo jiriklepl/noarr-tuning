@@ -119,6 +119,9 @@ struct contain<> : private helpers::contain_impl<> {
 	using helpers::contain_impl<>::contain_impl;
 };
 
+template<class ...TS>
+contain(TS...) -> contain<TS...>;
+
 } // namespace noarr
 
 
