@@ -101,20 +101,8 @@ struct interpret<Name, choice_t, Choices...> : contain<Choices...>  {
 		formatter.format(end);
 	}
 
-	constexpr decltype(auto) get() noexcept {
-		return base::template get<0>();
-	}
-
 	constexpr decltype(auto) get() const noexcept {
 		return base::template get<0>();
-	}
-
-	constexpr operator std::tuple_element_t<0, base>() const noexcept {
-		return get();
-	}
-
-	constexpr operator std::tuple_element_t<0, base>() noexcept {
-		return get();
 	}
 
 private:
@@ -136,20 +124,8 @@ struct interpret<Name, choice_t, Choices...> : contain<Choices...>  {
 		return base::template get<Name::value.template get<0>()>();
 	}
 
-	constexpr decltype(auto) get() noexcept {
-		return base::template get<Name::value.template get<0>()>();
-	}
-
 	template<class T>
 	constexpr void generate(T &&) const noexcept { }
-
-	constexpr operator std::tuple_element_t<Name::value.template get<0>(), base>() const noexcept {
-		return get();
-	}
-
-	constexpr operator std::tuple_element_t<Name::value.template get<0>(), base>() noexcept {
-		return get();
-	}
 };
 
 // TODO: implement
@@ -186,18 +162,6 @@ struct interpret<Name, permutation_t, Choices...> : contain<Choices...>  {
 		return *this;
 	}
 
-	constexpr base &get() noexcept {
-		return *this;
-	}
-
-	constexpr operator const base &() const noexcept {
-		return get();
-	}
-
-	constexpr operator base &() noexcept {
-		return get();
-	}
-
 private:
 	static constexpr auto begin = begin_parameter();
 	static constexpr auto end = end_parameter();
@@ -216,20 +180,8 @@ struct interpret<Name, permutation_t, Choices...> : contain<Choices...>  {
 		return *this;
 	}
 
-	constexpr base &get() noexcept {
-		return *this;
-	}
-
 	template<class T>
 	constexpr void generate(T &&) const noexcept { }
-
-	constexpr operator const base &() const noexcept {
-		return get();
-	}
-
-	constexpr operator base &() noexcept {
-		return get();
-	}
 };
 
 } // namespace noarr::tuning
