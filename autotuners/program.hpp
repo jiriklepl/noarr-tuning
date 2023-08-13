@@ -10,14 +10,18 @@
 #include "noarr/structures/extra/metamacros.hpp"
 #include "noarr/structures/extra/metastructures.hpp"
 
-constexpr auto i_st = noarr::vector<'i'>();
-constexpr auto j_st = noarr::vector<'j'>();
-constexpr auto k_st = noarr::vector<'k'>();
-
 /* use DUMMY formatter */
 #ifndef SPECIFIC_TUNING_BEGIN
 #define SPECIFIC_TUNING_BEGIN struct formatter {} formatter
 #endif
+
+using num_t = float;
+
+namespace {
+
+constexpr auto i_st = noarr::vector<'i'>();
+constexpr auto j_st = noarr::vector<'j'>();
+constexpr auto k_st = noarr::vector<'k'>();
 
 struct tuning {
 	SPECIFIC_TUNING_BEGIN;
@@ -53,48 +57,41 @@ struct tuning {
 	NOARR_TUNE_END();
 } T;
 
-using num_t = float;
-
-template<class C>
-constexpr auto reset(C c) {
+constexpr auto reset(auto C) {
 	return [=](auto state) {
-		c[state] = 0;
+		C[state] = 0;
 	};
 }
 
-template<class A, class B, class C>
-constexpr auto matmul(A a, B b, C c) {
+constexpr auto matmul(auto A, auto B, auto C) {
 	return [=](auto trav) {
-		num_t result = c[trav.state()];
+		num_t result = C[trav.state()];
 
 		trav.for_each([=, &result](auto state) {
-			result += a[state] * b[state];
+			result += A[state] * B[state];
 		});
 
-		c[trav.state()] = result;
+		C[trav.state()] = result;
 	};
 }
 
-template<class A, class B, class C>
-void run_matmul(A ta, B tb, C tc, num_t *pa, num_t *pb, num_t *pc) {
-	auto a = noarr::make_bag(ta, pa);
-	auto b = noarr::make_bag(tb, pb);
-	auto c = noarr::make_bag(tc, pc);
+void run_matmul(auto ta, auto tb, auto tc, num_t *pa, num_t *pb, num_t *pc) {
+	auto A = noarr::make_bag(ta, pa);
+	auto B = noarr::make_bag(tb, pb);
+	auto C = noarr::make_bag(tc, pc);
 
-	noarr::traverser(c).for_each(reset(c));
+	noarr::traverser(C).for_each(reset(C));
 
-	auto trav = noarr::traverser(a, b, c).order(*T.block_i ^ *T.block_j ^ *T.block_k);
+	auto trav = noarr::traverser(A, B, C).order(*T.block_i ^ *T.block_j ^ *T.block_k);
 
 	// trav.template for_dims<'I', J', 'K', 'i', 'j'>(matmul(a, b, c));
 	// modified for the experiments:
 	[=]<std::size_t ...Idxs>(auto order, std::index_sequence<Idxs...>){
-		trav.template for_dims<(char)(*order).template get<Idxs>()...>(matmul(a, b, c));
+		trav.template for_dims<(char)order->template get<Idxs>()...>(matmul(A, B, C));
 	}(T.block_order, std::make_index_sequence<std::tuple_size_v<std::remove_cvref_t<decltype(*T.block_order)>>>());
 }
 
-
-template<class A, class B, class C>
-extern void run_matmul(A ta, B tb, C tc, num_t *pa, num_t *pb, num_t *pc);
+}
 
 int main(int argc, char **argv) {
 	if(argc != 3) {
@@ -103,11 +100,7 @@ int main(int argc, char **argv) {
 	}
 
 	std::size_t size;
-
-	{
-		std::istringstream size_stream(argv[2]);
-		size_stream >> size;
-	}
+	std::istringstream(argv[2]) >> size;
 
 	auto ta = noarr::scalar<num_t>() ^ *T.a_order ^ noarr::set_length<'i', 'k'>(size, size);
 	auto tb = noarr::scalar<num_t>() ^ *T.b_order ^ noarr::set_length<'k', 'j'>(size, size);

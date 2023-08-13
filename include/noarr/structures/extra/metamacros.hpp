@@ -8,7 +8,7 @@
 // TODO: eager
 
 #define NOARR_PARAMETER(name) NOARR_PARAMETER_ ## name
-#define NOARR_PARAMETER_ENQUEUER(name) NOARR_PARAMETER_ENQUEUER_ ## name
+#define NOARR_PARAMETER_ENQUEUE(name) NOARR_PARAMETER_ENQUEUE_ ## name
 
 #ifdef NOARR_PASS_BY_DEFINE
 
@@ -29,8 +29,8 @@
 	struct NOARR_PARAMETER(parameter_name) { static constexpr const char *name= #parameter_name; }; \
 	decltype(::noarr::tuning::interpret(::noarr::tuning::placeholder<NOARR_PARAMETER(parameter_name)>(), __VA_ARGS__)) \
 	parameter_name{::noarr::tuning::placeholder<NOARR_PARAMETER(parameter_name)>(), __VA_ARGS__}; \
-	::noarr::tuning::enqueuer_type<decltype(formatter), decltype(parameter_name)> \
-	NOARR_PARAMETER_ENQUEUER(parameter_name){formatter, parameter_name}
+	::noarr::tuning::enqueue_t \
+	NOARR_PARAMETER_ENQUEUE(parameter_name){formatter, parameter_name}
 
 #define NOARR_TUNE_BEGIN(formatter_init) \
 	decltype(formatter_init) \

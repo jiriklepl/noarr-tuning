@@ -4,6 +4,8 @@
 #include "../base/contain.hpp"
 #include "../base/structs_common.hpp"
 #include "../extra/metaformatter.hpp"
+#include <bits/utility.h>
+#include <type_traits>
 
 namespace noarr::tuning {
 
@@ -49,9 +51,6 @@ struct range_t {};
 // TODO: implement
 struct lambda_t {};
 
-// TODO: implement
-struct clone_t {};
-
 template<class ValueType>
 concept IsDefined = requires{ ValueType::value; };
 
@@ -61,12 +60,14 @@ template<class Name, class Parameter, class ...Things>
 struct interpret;
 
 template<class Name, class Parameter, class ...Things>
-interpret(placeholder<Name>, Parameter, Things &&...) -> interpret<Name, Parameter, Things...>;
+interpret(placeholder<Name>, Parameter, Things &&...) -> interpret<Name, Parameter, std::remove_reference_t<Things>...>;
 
 // TODO: choice can also contain other metastructures
 
 template<class Name> requires (!IsDefined<Name>)
 struct interpret<Name, begin_t> : contain<> {
+	using name = Name;
+
 	constexpr interpret(placeholder<Name>, begin_t) noexcept : contain<>() {};
 
 	template<class TunerFormatter>
@@ -77,6 +78,8 @@ struct interpret<Name, begin_t> : contain<> {
 
 template<class Name> requires (!IsDefined<Name>)
 struct interpret<Name, end_t> : contain<> {
+	using name = Name;
+
 	constexpr interpret(placeholder<Name>, end_t) noexcept : contain<>() {};
 
 	template<class TunerFormatter>
@@ -88,40 +91,48 @@ struct interpret<Name, end_t> : contain<> {
 
 template<class Name, class ...Choices> requires (!IsDefined<Name>)
 struct interpret<Name, choice_t, Choices...> : contain<Choices...>  {
-	using base = contain<Choices...>;
+	using name = Name;
 
 	constexpr interpret(placeholder<Name>, choice_t, Choices &&...choices)
-		: base(std::forward<Choices>(choices)...) {}
+		: contain<Choices...>(std::forward<Choices>(choices)...) {}
+
+	constexpr decltype(auto) operator*() const noexcept {
+		return this->template get<0>();
+	}
+
+	constexpr decltype(auto) operator->() const noexcept {
+		return &**this;
+	}
 
 	template<class TunerFormatter>
 	void generate(TunerFormatter &formatter) const {
-		formatter.format(begin);
-		formatter.format(name);
-		formatter.format(categories);
-		formatter.format(end);
-	}
-
-	constexpr decltype(auto) operator*() const noexcept {
-		return base::template get<0>();
+		formatter.format(begin_);
+		formatter.format(name_);
+		formatter.format(categories_);
+		formatter.format(end_);
 	}
 
 private:
-	static constexpr auto begin = begin_parameter();
-	static constexpr auto end = end_parameter();
-	static constexpr auto name = name_parameter(Name::name);
-	static constexpr auto categories = category_parameter(sizeof...(Choices));
+	static constexpr auto begin_ = begin_parameter();
+	static constexpr auto end_ = end_parameter();
+	static constexpr auto name_ = name_parameter(Name::name);
+	static constexpr auto categories_ = category_parameter(sizeof...(Choices));
 };
 
 // TODO: `Name::value` -> `Name::choice` or something?
 template<class Name, class ...Choices> requires (IsDefined<Name>)
 struct interpret<Name, choice_t, Choices...> : contain<Choices...>  {
-	using base = contain<Choices...>;
+	using name = Name;
 
 	constexpr interpret(placeholder<Name>, choice_t, Choices &&...choices)
-		: base(std::forward<Choices>(choices)...) {}
+		: contain<Choices...>(std::forward<Choices>(choices)...) {}
 
 	constexpr decltype(auto) operator*() const noexcept {
-		return base::template get<Name::value.template get<0>()>();
+		return this->template get<Name::value.template get<0>()>();
+	}
+
+	constexpr decltype(auto) operator->() const noexcept {
+		return &**this;
 	}
 
 	template<class T>
@@ -135,53 +146,60 @@ struct interpret<Name, range_t, std::size_t, std::size_t, std::size_t> {
 
 };
 
-
-template<class Formatter, class Parameter>
-struct enqueuer_type {
-	enqueuer_type(Formatter &first, Parameter &second) {
-		second.generate(first);
-	}
-};
-
 template<class Name, class ...Choices> requires (!IsDefined<Name>)
 struct interpret<Name, permutation_t, Choices...> : contain<Choices...>  {
-	using base = contain<Choices...>;
+	using name = Name;
 
 	constexpr interpret(placeholder<Name>, permutation_t, Choices &&...choices)
-		: base(std::forward<Choices>(choices)...) {}
+		: contain<Choices...>(std::forward<Choices>(choices)...) {}
 
-	template<class TunerFormatter>
-	void generate(TunerFormatter &formatter) const {
-		formatter.format(begin);
-		formatter.format(name);
-		formatter.format(permutation);
-		formatter.format(end);
-	}
-
-	constexpr const base &operator*() const noexcept {
+	constexpr const contain<Choices...> &operator*() const noexcept {
 		return *this;
 	}
 
+	constexpr decltype(auto) operator->() const noexcept {
+		return &**this;
+	}
+
+	template<class TunerFormatter>
+	void generate(TunerFormatter &formatter) const {
+		formatter.format(begin_);
+		formatter.format(name_);
+		formatter.format(permutation_);
+		formatter.format(end_);
+	}
+
 private:
-	static constexpr auto begin = begin_parameter();
-	static constexpr auto end = end_parameter();
-	static constexpr auto name = name_parameter(Name::name);
-	static constexpr auto permutation = permutation_parameter(sizeof...(Choices));
+	static constexpr auto begin_ = begin_parameter();
+	static constexpr auto end_ = end_parameter();
+	static constexpr auto name_ = name_parameter(Name::name);
+	static constexpr auto permutation_ = permutation_parameter(sizeof...(Choices));
 };
 
 template<class Name, class ...Choices> requires (IsDefined<Name>)
 struct interpret<Name, permutation_t, Choices...> : contain<Choices...>  {
-	using base = contain<Choices...>;
+	using name = Name;
 
 	constexpr interpret(placeholder<Name>, permutation_t, Choices &&...choices)
-		: base(std::forward<Choices>(choices)...) {}
+		: contain<Choices...>(std::forward<Choices>(choices)...) {}
 
-	constexpr const base &operator*() const noexcept {
+	constexpr const contain<Choices...> &operator*() const noexcept {
 		return *this;
+	}
+
+	constexpr decltype(auto) operator->() const noexcept {
+		return &**this;
 	}
 
 	template<class T>
 	constexpr void generate(T &&) const noexcept { }
+};
+
+struct enqueue_t {
+	template<class Formatter, class Parameter>
+	constexpr enqueue_t(Formatter &first, Parameter &second) {
+		second.generate(first);
+	}
 };
 
 } // namespace noarr::tuning
