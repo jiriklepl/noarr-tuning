@@ -4,7 +4,6 @@
 #include <cstdint>
 #include <memory>
 #include <utility>
-#include <variant>
 #include <vector>
 
 #include "../extra/metaformatter.hpp"
@@ -16,80 +15,36 @@ template<class ...Formatters>
 class combined_formatter {
 public:
 	combined_formatter(std::unique_ptr<Formatters> &&...formatters)
-		: formatters_(std::forward<std::unique_ptr<Formatters>>(formatters)...)
+		: formatters_(std::move(formatters)...)
 	{}
 
-	void header() {
-		return header_impl(std::make_index_sequence<sizeof...(Formatters)>());
+	constexpr void header() {
+		return header_impl(std::index_sequence_for<Formatters...>());
 	}
 
-	void footer() {
-		return footer_impl(std::make_index_sequence<sizeof...(Formatters)>());
+	constexpr void footer() {
+		return footer_impl(std::index_sequence_for<Formatters...>());
 	}
 
-	void format(const begin_parameter &par) {
-		return format_impl(par, std::make_index_sequence<sizeof...(Formatters)>());
-	}
-
-	void format(const end_parameter &par) {
-		return format_impl(par, std::make_index_sequence<sizeof...(Formatters)>());
-	}
-
-	void format(const name_parameter &par) {
-		return format_impl(par, std::make_index_sequence<sizeof...(Formatters)>());
-	}
-
-	void format(const category_parameter &par) {
-		return format_impl(par, std::make_index_sequence<sizeof...(Formatters)>());
-	}
-
-	void format(const multiple_choice_parameter &par) {
-		return format_impl(par, std::make_index_sequence<sizeof...(Formatters)>());
-	}
-
-	void format(const permutation_parameter &par) {
-		return format_impl(par, std::make_index_sequence<sizeof...(Formatters)>());
+	template<class ...Pars>
+	constexpr void format(Pars &&...pars) {
+		return format_impl(std::index_sequence_for<Formatters...>(), std::forward<Pars>(pars)...);
 	}
 
 private:
 	template<std::size_t ...Idxs>
-	void header_impl(std::index_sequence<Idxs...>) {
+	constexpr void header_impl(std::index_sequence<Idxs...>) {
 		return (... , std::get<Idxs>(formatters_)->header());
 	}
 
 	template<std::size_t ...Idxs>
-	void footer_impl(std::index_sequence<Idxs...>) {
+	constexpr void footer_impl(std::index_sequence<Idxs...>) {
 		return (... , std::get<Idxs>(formatters_)->footer());
 	}
 
-	template<std::size_t ...Idxs>
-	void format_impl(const begin_parameter &par, std::index_sequence<Idxs...>) {
-		return (... , std::get<Idxs>(formatters_)->format(par));
-	}
-
-	template<std::size_t ...Idxs>
-	void format_impl(const end_parameter &par, std::index_sequence<Idxs...>) {
-		return (... , std::get<Idxs>(formatters_)->format(par));
-	}
-
-	template<std::size_t ...Idxs>
-	void format_impl(const name_parameter &par, std::index_sequence<Idxs...>) {
-		return (... , std::get<Idxs>(formatters_)->format(par));
-	}
-
-	template<std::size_t ...Idxs>
-	void format_impl(const category_parameter &par, std::index_sequence<Idxs...>) {
-		return (... , std::get<Idxs>(formatters_)->format(par));
-	}
-
-	template<std::size_t ...Idxs>
-	void format_impl(const multiple_choice_parameter &par, std::index_sequence<Idxs...>) {
-		return (... , std::get<Idxs>(formatters_)->format(par));
-	}
-
-	template<std::size_t ...Idxs>
-	void format_impl(const permutation_parameter &par, std::index_sequence<Idxs...>) {
-		return (... , std::get<Idxs>(formatters_)->format(par));
+	template<class ...Pars, std::size_t ...Idxs>
+	constexpr void format_impl(std::index_sequence<Idxs...>, Pars &&...pars) {
+		return (... , std::get<Idxs>(formatters_)->format(std::forward<Pars>(pars)...));
 	}
 
 	std::tuple<std::unique_ptr<Formatters> ...> formatters_;
@@ -100,61 +55,59 @@ static_assert(IsTunerFormatter<combined_formatter<>>);
 template<class Formatter>
 class lazy_formatter {
 public:
-	lazy_formatter(std::unique_ptr<Formatter> &&formatter)
-		: formatter_(std::forward<std::unique_ptr<Formatter>>(formatter))
+	template<class ...Args>
+	lazy_formatter(Args &&...args) noexcept(noexcept(std::unique_ptr<Formatter>(std::forward<Args>(args)...)))
+		: formatter_(std::forward<Args>(args)...)
 	{}
 
-	void header() const noexcept {
+	class arg_pack_base {
+	public:
+		virtual ~arg_pack_base() = default;
+		virtual constexpr void format(Formatter &formatter) const = 0;
+	};
+
+	template<class ...Args>
+	class arg_pack : public arg_pack_base {
+	private:
+		std::tuple<Args &&...> args_;
+
+	public:
+		arg_pack(Args &&...args) : args_(std::forward<Args>(args)...) {}
+		~arg_pack() override = default;
+
+		constexpr void format(Formatter &formatter) const noexcept override {
+			format_impl(formatter, std::index_sequence_for<Args...>());
+		}
+
+	private:
+		template<std::size_t ...Idxs>
+		constexpr void format_impl(Formatter &formatter, std::index_sequence<Idxs...>) const noexcept {
+			formatter.format(std::get<Idxs>(args_)...);
+		}
+	};
+
+	constexpr void header() const noexcept {
 		// we are lazy!
 	}
 
-	void footer() const {
+	void footer() {
 		// oh *%^!, time to do the job...
 		formatter_->header();
 
-		for (auto &&par : cache_) {
-			std::visit(
-				[this](const auto *par) { return formatter_->format(*par); },
-				par);
-		}
+		for (auto &&arg_pack : cache_)
+			arg_pack->format(*formatter_);
 
 		formatter_->footer();
 	}
 
-
-	void format(const begin_parameter &par) {
-		cache_.emplace_back(&par);
-	}
-
-	void format(const end_parameter &par) {
-		cache_.emplace_back(&par);
-	}
-
-	void format(const name_parameter &par) {
-		cache_.emplace_back(&par);
-	}
-
-	void format(const category_parameter &par) {
-		cache_.emplace_back(&par);
-	}
-
-	void format(const multiple_choice_parameter &par) {
-		cache_.emplace_back(&par);
-	}
-
-	void format(const permutation_parameter &par) {
-		cache_.emplace_back(&par);
+	template<class ...Args>
+	void format(Args &&...args) {
+		cache_.emplace_back(std::make_unique<arg_pack<Args...>>(std::forward<Args>(args)...));
 	}
 
 private:
 	std::unique_ptr<Formatter> formatter_;
-	std::vector<std::variant<
-		const begin_parameter *,
-		const end_parameter *,
-		const name_parameter *,
-		const category_parameter *,
-		const multiple_choice_parameter *,
-		const permutation_parameter *>> cache_;
+	std::vector<std::unique_ptr<arg_pack_base>> cache_;
 };
 
 // TODO: add static_asserts for lazy_formatter

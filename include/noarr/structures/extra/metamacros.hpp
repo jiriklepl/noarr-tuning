@@ -1,7 +1,7 @@
 #ifndef NOARR_STRUCTURES_METAMACROS_HPP
 #define NOARR_STRUCTURES_METAMACROS_HPP
 
-#include "noarr/structures/extra/metastructures.hpp"
+#include "../extra/metastructures.hpp"
 
 // TODO: pass by in-code define
 // TODO: pass by code

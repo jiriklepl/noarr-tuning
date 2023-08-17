@@ -2,8 +2,7 @@
 #define NOARR_STRUCTURES_METAFORMATTER_HPP
 
 #include <cstdint>
-#include <ostream>
-#include <memory>
+#include <concepts>
 
 #include "../base/contain.hpp"
 
@@ -39,6 +38,23 @@ struct permutation_parameter {
 	std::size_t num_;
 };
 
+template<class Predicate>
+struct predicate_parameter {
+private:
+	Predicate predicate_;
+
+public:
+	constexpr predicate_parameter(Predicate predicate) noexcept : predicate_(predicate) {}
+
+	Predicate predicate() const noexcept { return predicate_; }
+
+	template<class T>
+	constexpr bool operator()(T &&arg) const noexcept {
+		return predicate_(arg);
+	}
+
+	constexpr operator Predicate() const noexcept { return predicate_; }
+};
 
 template<class T>
 concept IsTunerFormatter = requires(T t) {
@@ -51,6 +67,11 @@ concept IsTunerFormatter = requires(T t) {
 	{ t.format(category_parameter(0)) } -> std::same_as<void>;
 	{ t.format(multiple_choice_parameter()) } -> std::same_as<void>;
 	{ t.format(permutation_parameter(0)) } -> std::same_as<void>;
+};
+
+template<class T>
+concept IsConstrainedTunerFormatter = IsTunerFormatter<T> && requires(T t) {
+	{ t.format("name", predicate_parameter([](auto &&arg) { return true; })) } -> std::same_as<void>; // TODO: think about this
 };
 
 } // namespace noarr::tuning

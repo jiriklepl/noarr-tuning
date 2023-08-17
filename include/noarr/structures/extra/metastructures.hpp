@@ -1,11 +1,13 @@
 #ifndef NOARR_STRUCTURES_METASTRUCTURES_HPP
 #define NOARR_STRUCTURES_METASTRUCTURES_HPP
 
+#include <cstdlib>
+#include <type_traits>
+#include <utility>
+
 #include "../base/contain.hpp"
 #include "../base/structs_common.hpp"
 #include "../extra/metaformatter.hpp"
-#include <bits/utility.h>
-#include <type_traits>
 
 namespace noarr::tuning {
 
