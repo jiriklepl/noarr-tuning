@@ -108,16 +108,10 @@ struct interpret<Name, choice_t, Choices...> : contain<Choices...>  {
 
 	template<class TunerFormatter>
 	void generate(TunerFormatter &formatter) const {
-		formatter.format(begin_);
-		formatter.format(name_);
-		formatter.format(categories_);
-		formatter.format(end_);
+		formatter.format(Name::name, categories_);
 	}
 
 private:
-	static constexpr auto begin_ = begin_parameter();
-	static constexpr auto end_ = end_parameter();
-	static constexpr auto name_ = name_parameter(Name::name);
 	static constexpr auto categories_ = category_parameter(sizeof...(Choices));
 };
 
@@ -165,16 +159,10 @@ struct interpret<Name, permutation_t, Choices...> : contain<Choices...>  {
 
 	template<class TunerFormatter>
 	void generate(TunerFormatter &formatter) const {
-		formatter.format(begin_);
-		formatter.format(name_);
-		formatter.format(permutation_);
-		formatter.format(end_);
+		formatter.format(Name::name, permutation_);
 	}
 
 private:
-	static constexpr auto begin_ = begin_parameter();
-	static constexpr auto end_ = end_parameter();
-	static constexpr auto name_ = name_parameter(Name::name);
 	static constexpr auto permutation_ = permutation_parameter(sizeof...(Choices));
 };
 

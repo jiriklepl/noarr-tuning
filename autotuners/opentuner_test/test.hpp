@@ -12,14 +12,12 @@
 // TODO: name
 struct opentuner_ss_formatter {
 	// TODO: this is bad
-	const char *name_;
 	const char *manipulator_name_;
 	std::size_t indent_level_;
 	std::ostream &out_;
 
 	opentuner_ss_formatter(const char *manipulator_name, std::ostream &out, std::size_t indent_level = 0)
-		: name_(nullptr)
-		, manipulator_name_(manipulator_name)
+		: manipulator_name_(manipulator_name)
 		, indent_level_(indent_level)
 		, out_(out)
 	{}
@@ -28,8 +26,10 @@ struct opentuner_ss_formatter {
 		out_ <<
 			std::string(indent_level_, ' ') <<
 				"def manipulator(self):" << std::endl <<
-			std::string(indent_level_ += 2, ' ') <<
+			std::string(indent_level_ + 2, ' ') <<
 				manipulator_name_ << " = ConfigurationManipulator()" << std::endl;
+
+		indent_level_ += 2;
 	}
 
 	void footer() {
@@ -37,34 +37,20 @@ struct opentuner_ss_formatter {
 	}
 
 	// TODO
-	void format(const noarr::tuning::begin_parameter &) {
+	void format(const char *name, const noarr::tuning::category_parameter &par) {
 		out_ << std::string(indent_level_, ' ')  << manipulator_name_ << ".add_parameter(";
+		out_ << "SwitchParameter('" << name << "', " << par.num_ << "))" << std::endl;
 	}
 
 	// TODO
-	void format(const noarr::tuning::end_parameter &) {
-		name_ = nullptr;
-		out_ << ')' << std::endl;
-	}
-
-	// TODO
-	void format(const noarr::tuning::name_parameter &name) {
-		name_ = name.name_;
-	}
-
-	// TODO
-	void format(const noarr::tuning::category_parameter &par) {
-		out_ << "SwitchParameter('" << name_ << "', " << par.num_ << ')';
-	}
-
-	// TODO
-	void format(const noarr::tuning::multiple_choice_parameter &) {
+	void format(const char *, const noarr::tuning::multiple_choice_parameter &) {
 		throw std::exception();
 	}
 
 	// TODO
-	void format(const noarr::tuning::permutation_parameter &par) {
-		out_ << "PermutationParameter('" << name_ << "', range(" << par.num_ << "))";
+	void format(const char *name, const noarr::tuning::permutation_parameter &par) {
+		out_ << std::string(indent_level_, ' ')  << manipulator_name_ << ".add_parameter(";
+		out_ << "PermutationParameter('" << name << "', range(" << par.num_ << ")))" << std::endl;
 	}
 };
 
@@ -75,7 +61,6 @@ template<noarr::tuning::IsCompileCommandBuilder CompileCommandBuilder, noarr::tu
 struct opentuner_run_formatter {
 	// TODO: this is bad
 	const char *cfg_name_;
-	std::string name_;
 	std::ostream &out_;
 
 	std::shared_ptr<CompileCommandBuilder> compile_command_builder_;
@@ -98,13 +83,13 @@ struct opentuner_run_formatter {
 	}
 
 	void header() {
-		indent_level_ += 2;
-
 		out_ <<
-			std::string(indent_level_ - 2, ' ') <<
-				"def run(self, desired_result, input, limit):" << std::endl <<
 			std::string(indent_level_, ' ') <<
+				"def run(self, desired_result, input, limit):" << std::endl <<
+			std::string(indent_level_ + 2, ' ') <<
 				cfg_name_ << " = desired_result.configuration.data" << std::endl;
+
+		indent_level_ += 2;
 	}
 
 	void footer() {
@@ -133,36 +118,23 @@ struct opentuner_run_formatter {
 	}
 
 	// TODO
-	void format(const noarr::tuning::begin_parameter &) {
-	}
-
-	// TODO
-	void format(const noarr::tuning::end_parameter &) {
-	}
-
-	// TODO
-	void format(const noarr::tuning::name_parameter &name) {
-		name_ = name.name_;
-	}
-
-	// TODO
-	void format(const noarr::tuning::category_parameter &) {
+	void format(const char *name, const noarr::tuning::category_parameter &) {
 		// TODO: fix this
 		compile_command_builder_->add_define(
-			(std::string("NOARR_PARAMETER_VALUE_") + name_).c_str(),
-			(std::string("{")  + cfg_name_ + "[\"" + name_ + "\"]}").c_str());
+			(std::string("NOARR_PARAMETER_VALUE_") + name).c_str(),
+			(std::string("{")  + cfg_name_ + "[\"" + name + "\"]}").c_str());
 	}
 
 	// TODO
-	void format(const noarr::tuning::multiple_choice_parameter &) {
+	void format(const char *, const noarr::tuning::multiple_choice_parameter &) {
 		throw std::exception();
 	}
 
 	// TODO
-	void format(const noarr::tuning::permutation_parameter &) {
+	void format(const char *name, const noarr::tuning::permutation_parameter &) {
 		compile_command_builder_->add_define(
-			(std::string("NOARR_PARAMETER_VALUE_") + name_).c_str(),
-			(std::string("{str.join(\",\", map(str, ") + cfg_name_ + "[\"" + name_ + "\"]))}").c_str());
+			(std::string("NOARR_PARAMETER_VALUE_") + name).c_str(),
+			(std::string("{str.join(\",\", map(str, ") + cfg_name_ + "[\"" + name + "\"]))}").c_str());
 	}
 };
 

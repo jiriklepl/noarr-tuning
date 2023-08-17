@@ -1,5 +1,5 @@
-#ifndef OPENTUNER_TEST_TEST_HPP
-#define OPENTUNER_TEST_TEST_HPP
+#ifndef OPTUNA_TEST_TEST_HPP
+#define OPTUNA_TEST_TEST_HPP
 
 #include <memory>
 
@@ -8,11 +8,8 @@
 #include "noarr/structures/extra/metamacros.hpp"
 #include "noarr/structures/extra/metastructures.hpp"
 
-// TODO: name
-
 template<noarr::tuning::IsCompileCommandBuilder CompileCommandBuilder, noarr::tuning::IsRunCommandBuilder RunCommandBuilder>
 struct optuna_formatter {
-	std::string name_;
 	std::ostream &out_;
 
 	std::shared_ptr<CompileCommandBuilder> compile_command_builder_;
@@ -69,27 +66,11 @@ study.optimize(application_tuner, n_trials=100)
 	}
 
 	// TODO
-	void format(const noarr::tuning::begin_parameter &) {
-	}
-
-	// TODO
-	void format(const noarr::tuning::end_parameter &) {
-		out_ << std::endl;
-	}
-
-	// TODO
-	void format(const noarr::tuning::name_parameter &name) {
-		name_ = "NOARR_PARAMETER_VALUE_" + std::string(name.name_);
-
-		out_ << "  " << name_ << '=';
-
+	void format(const char *name, const noarr::tuning::category_parameter &par) {
+		std::string name_ = "NOARR_PARAMETER_VALUE_" + std::string(name);
 		auto value = "{" + name_ + "}";
 		compile_command_builder_->add_define(name_.c_str(), value.c_str());
-	}
-
-	// TODO
-	void format(const noarr::tuning::category_parameter &par) {
-		out_ << "  trial.suggest_categorical('" << name_ << "', range(" << par.num_ << "))";
+		out_ << "  " << name_ << " = trial.suggest_categorical('" << name_ << "', range(" << par.num_ << "))" << std::endl;
 	}
 
 	// TODO
@@ -98,8 +79,11 @@ study.optimize(application_tuner, n_trials=100)
 	}
 
 	// TODO
-	void format(const noarr::tuning::permutation_parameter &par) {
-		out_ << "  trial.suggest_categorical('" << name_ << "', list(map(lambda x: ','.join(x), itertools.permutations(map(str, range(" << par.num_ << "))))))";
+	void format(const char *name, const noarr::tuning::permutation_parameter &par) {
+		std::string name_ = "NOARR_PARAMETER_VALUE_" + std::string(name);
+		auto value = "{" + name_ + "}";
+		compile_command_builder_->add_define(name_.c_str(), value.c_str());
+		out_ << "  " << name_ << " = trial.suggest_categorical('" << name_ << "', list(map(lambda x: ','.join(x), itertools.permutations(map(str, range(" << par.num_ << "))))))" << std::endl;
 	}
 };
 

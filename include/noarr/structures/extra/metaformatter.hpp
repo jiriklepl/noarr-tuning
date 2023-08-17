@@ -8,19 +8,6 @@
 
 namespace noarr::tuning {
 
-// TODO: add type of the ...
-// TODO: rename from "parameter"
-struct begin_parameter {};
-
-// TODO: rename from "parameter"
-struct end_parameter {};
-
-struct name_parameter {
-	constexpr name_parameter(const char *name) noexcept : name_(name) {};
-
-	const char *name_;
-};
-
 // TODO: preferred category? distribution? names?
 //   OpenTuner calls it a switch
 struct category_parameter {
@@ -61,17 +48,14 @@ concept IsTunerFormatter = requires(T t) {
 	{ t.header() } -> std::same_as<void>;
 	{ t.footer() } -> std::same_as<void>;
 
-	{ t.format(begin_parameter()) } -> std::same_as<void>;
-	{ t.format(end_parameter()) } -> std::same_as<void>;
-	{ t.format(name_parameter("name")) } -> std::same_as<void>;
-	{ t.format(category_parameter(0)) } -> std::same_as<void>;
-	{ t.format(multiple_choice_parameter()) } -> std::same_as<void>;
-	{ t.format(permutation_parameter(0)) } -> std::same_as<void>;
+	{ t.format("name", category_parameter(0)) } -> std::same_as<void>;
+	{ t.format("name", multiple_choice_parameter()) } -> std::same_as<void>; // TODO: think about this
+	{ t.format("name", permutation_parameter(0)) } -> std::same_as<void>;
 };
 
 template<class T>
 concept IsConstrainedTunerFormatter = IsTunerFormatter<T> && requires(T t) {
-	{ t.format("name", predicate_parameter([](auto &&arg) { return true; })) } -> std::same_as<void>; // TODO: think about this
+	{ t.format("name", predicate_parameter([](auto &&) { return true; })) } -> std::same_as<void>; // TODO: think about this
 };
 
 } // namespace noarr::tuning
