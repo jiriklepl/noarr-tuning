@@ -17,11 +17,10 @@ template<std::size_t Value, std::size_t Mul>
 constexpr std::size_t pad_to_multiple = (Value + Mul - 1) / Mul * Mul;
 
 struct simple_cg_t : contain<std::size_t, std::size_t> {
-	using base = contain<std::size_t, std::size_t>;
-	using base::base;
+	using contain<std::size_t, std::size_t>::contain;
 
-	constexpr std::size_t thread_rank() const noexcept { return base::template get<0>(); }
-	constexpr std::size_t num_threads() const noexcept { return base::template get<1>(); }
+	constexpr std::size_t thread_rank() const noexcept { return this->template get<0>(); }
+	constexpr std::size_t num_threads() const noexcept { return this->template get<1>(); }
 };
 
 } // namespace helpers
@@ -45,7 +44,7 @@ struct cuda_stripe_index {
 
 template<std::size_t NumStripes, class ElemType, std::size_t BankCount, std::size_t BankWidth, class T>
 struct cuda_striped_t : contain<T> {
-	static_assert(is_struct<ElemType>(), "The element type of cuda_striped must be a noarr structure.");
+	static_assert(is_struct_v<ElemType>, "The element type of cuda_striped must be a noarr structure.");
 
 	static constexpr char name[] = "cuda_striped_t";
 	using params = struct_params<
@@ -58,7 +57,7 @@ struct cuda_striped_t : contain<T> {
 	constexpr cuda_striped_t() noexcept = default;
 	explicit constexpr cuda_striped_t(T sub_structure) noexcept : contain<T>(sub_structure) {}
 
-	constexpr T sub_structure() const noexcept { return contain<T>::template get<0>(); }
+	constexpr T sub_structure() const noexcept { return contain<T>::get(); }
 	constexpr auto sub_state(IsState auto state) const noexcept { return state.template remove<cuda_stripe_index>(); }
 
 private:
@@ -147,7 +146,7 @@ private:
 
 template<std::size_t NumStripes, class ElemType, std::size_t BankCount, std::size_t BankWidth>
 struct cuda_striped_proto {
-	static_assert(is_struct<ElemType>(), "The element type of cuda_striped must be a noarr structure. Omit the type to imply scalar<...>, or specify scalar<...> (or any other noarr structure) explicitly.");
+	static_assert(is_struct_v<ElemType>, "The element type of cuda_striped must be a noarr structure. Omit the type to imply scalar<...>, or specify scalar<...> (or any other noarr structure) explicitly.");
 	static constexpr bool proto_preserves_layout = false;
 
 	template<class Struct>

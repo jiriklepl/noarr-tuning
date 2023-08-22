@@ -115,8 +115,7 @@ struct zc_log2<1> {
 
 template<int SpecialLevel, int GeneralLevel, IsDim auto Dim, class T, auto... Dims>
 struct merge_zcurve_t : contain<T> {
-	using base = contain<T>;
-	using base::base;
+	using contain<T>::contain;
 
 	static constexpr char name[] = "merge_zcurve_t";
 	using params = struct_params<
@@ -126,7 +125,7 @@ struct merge_zcurve_t : contain<T> {
 		structure_param<T>,
 		dim_param<Dims>...>;
 
-	constexpr T sub_structure() const noexcept { return base::template get<0>(); }
+	constexpr T sub_structure() const noexcept { return this->get(); }
 
 	static_assert(SpecialLevel <= GeneralLevel && GeneralLevel < 8*sizeof(std::size_t), "Invalid parameters");
 	static_assert(sizeof...(Dims), "No dimensions to merge");
@@ -165,7 +164,7 @@ public:
 
 	using is = std::make_index_sequence<sizeof...(Dims)>;
 
-	template<std::size_t... DimsI, IsState State>
+	template<std::size_t... DimsI, class State> requires (sizeof...(DimsI) == sizeof...(Dims) && IsState<State>)
 	constexpr auto sub_state(State state, std::index_sequence<DimsI...>) const noexcept {
 		static_assert(!State::template contains<length_in<Dim>>, "Cannot set z-curve length");
 		auto clean_state = state.template remove<index_in<Dim>, index_in<Dims>..., length_in<Dims>...>();
