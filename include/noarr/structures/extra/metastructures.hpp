@@ -5,7 +5,6 @@
 #include <type_traits>
 #include <utility>
 
-#include "../base/contain.hpp"
 #include "../base/structs_common.hpp"
 #include "../extra/metaformatter.hpp"
 
@@ -62,7 +61,7 @@ template<class Name, class Parameter, class ...Things>
 struct interpret;
 
 template<class Name, class Parameter, class ...Things>
-interpret(placeholder<Name>, Parameter, Things &&...) -> interpret<Name, Parameter, std::remove_reference_t<Things>...>;
+interpret(placeholder<Name>, Parameter, Things&&...) -> interpret<Name, Parameter, Things...>;
 
 // TODO: choice can also contain other metastructures
 
@@ -72,21 +71,29 @@ struct interpret<Name, begin_t> : contain<> {
 
 	constexpr interpret(placeholder<Name>, begin_t) noexcept : contain<>() {};
 
-	template<class TunerFormatter>
-	void generate(TunerFormatter &formatter) const {
-		formatter.header();
+	template<class TunerFormatter, class ...Args>
+	constexpr decltype(auto) generate(TunerFormatter &formatter, const Args &...args) const {
+		return formatter.header(args...);
 	}
 };
 
-template<class Name> requires (!IsDefined<Name>)
-struct interpret<Name, end_t> : contain<> {
+template<class Name, class ...Args> requires (!IsDefined<Name>)
+struct interpret<Name, end_t, Args...> : contain<Args...> {
 	using name = Name;
 
-	constexpr interpret(placeholder<Name>, end_t) noexcept : contain<>() {};
+	constexpr interpret(placeholder<Name>, end_t, const Args &...args) noexcept : contain<Args...>(args...) {
+		
+	};
 
 	template<class TunerFormatter>
-	void generate(TunerFormatter &formatter) const {
-		formatter.footer();
+	constexpr void generate(TunerFormatter &formatter) const {
+		generate(formatter, std::index_sequence_for<Args...>());
+	}
+
+private:
+	template<class TunerFormatter, std::size_t ...Is>
+	constexpr void generate(TunerFormatter &formatter, std::index_sequence<Is...>) const {
+		formatter.footer(this->template get<Is>()...);
 		std::exit(0);
 	}
 };
@@ -107,8 +114,13 @@ struct interpret<Name, choice_t, Choices...> : contain<Choices...>  {
 	}
 
 	template<class TunerFormatter>
-	void generate(TunerFormatter &formatter) const {
-		formatter.format(Name::name, categories_);
+	constexpr decltype(auto) generate(TunerFormatter &formatter) const {
+		return formatter.format(Name::name, categories_);
+	}
+
+	template<class TunerFormatter, class Constraint>
+	constexpr decltype(auto) generate(TunerFormatter &formatter, Constraint &constraint) const {
+		return formatter.format(Name::name, categories_, constraint);
 	}
 
 private:
@@ -131,8 +143,8 @@ struct interpret<Name, choice_t, Choices...> : contain<Choices...>  {
 		return &**this;
 	}
 
-	template<class T>
-	constexpr void generate(T &&) const noexcept { }
+	template<class ...Ts>
+	constexpr void generate(Ts &&...) const noexcept { }
 };
 
 // TODO: implement
@@ -158,8 +170,13 @@ struct interpret<Name, permutation_t, Choices...> : contain<Choices...>  {
 	}
 
 	template<class TunerFormatter>
-	void generate(TunerFormatter &formatter) const {
-		formatter.format(Name::name, permutation_);
+	constexpr decltype(auto) generate(TunerFormatter &formatter) const {
+		return formatter.format(Name::name, permutation_);
+	}
+
+	template<class TunerFormatter, class Constraint>
+	constexpr decltype(auto) generate(TunerFormatter &formatter, Constraint &constraint) const {
+		return formatter.format(Name::name, permutation_, constraint);
 	}
 
 private:
@@ -181,16 +198,53 @@ struct interpret<Name, permutation_t, Choices...> : contain<Choices...>  {
 		return &**this;
 	}
 
-	template<class T>
-	constexpr void generate(T &&) const noexcept { }
+	template<class ...Ts>
+	constexpr void generate(Ts &&...) const noexcept { }
 };
 
-struct enqueue_t {
-	template<class Formatter, class Parameter>
-	constexpr enqueue_t(Formatter &first, Parameter &second) {
-		second.generate(first);
+template<class Formatter, class Parameter, class Constraint>
+struct definition_t {
+	using value_type = decltype(std::declval<Parameter>().generate((Formatter&)(std::declval<Formatter>()), (Constraint&)(std::declval<Constraint>())));
+
+	constexpr definition_t(Formatter &formatter, Parameter &parameter, Constraint &constraint) requires (!std::is_same_v<value_type, void>)
+		: value_(parameter.generate(formatter, constraint)) {}
+
+	constexpr definition_t(Formatter &formatter, Parameter &parameter, Constraint &constraint) requires (std::is_same_v<value_type, void>) {
+		parameter.generate(formatter, constraint);
 	}
+
+	constexpr decltype(auto) operator*() const noexcept {
+		return value_;
+	}
+
+private:
+	std::conditional_t<!std::is_same_v<value_type, void>, value_type, empty_t> value_;
 };
+
+template<class Formatter, class Parameter>
+struct definition_t<Formatter, Parameter, void> {
+	using value_type = decltype(std::declval<Parameter>().generate((Formatter&)(std::declval<Formatter>())));
+
+	constexpr definition_t(Formatter &formatter, Parameter &parameter) requires (!std::is_same_v<value_type, void>)
+		: value_(parameter.generate(formatter)) {}
+	
+	constexpr definition_t(Formatter &formatter, Parameter &parameter) requires (std::is_same_v<value_type, void>) {
+		parameter.generate(formatter);
+	}
+
+	constexpr decltype(auto) operator*() const noexcept {
+		return value_;
+	}
+
+private:
+	std::conditional_t<!std::is_same_v<value_type, void>, value_type, empty_t> value_;
+};
+
+template<class Formatter, class Parameter, class Constraint>
+definition_t(Formatter &, Parameter &, Constraint &) -> definition_t<Formatter, Parameter, Constraint>;
+
+template<class Formatter, class Parameter>
+definition_t(Formatter &, Parameter &) -> definition_t<Formatter, Parameter, void>;
 
 } // namespace noarr::tuning
 

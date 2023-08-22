@@ -25,6 +25,10 @@ struct permutation_parameter {
 	std::size_t num_;
 };
 
+struct predicate_parameter_base {
+	virtual ~predicate_parameter_base() = default;
+};
+
 template<class Predicate>
 struct predicate_parameter {
 private:
@@ -40,22 +44,25 @@ public:
 		return predicate_(arg);
 	}
 
+	constexpr Predicate get() const noexcept { return predicate_; }
 	constexpr operator Predicate() const noexcept { return predicate_; }
 };
 
 template<class T>
 concept IsTunerFormatter = requires(T t) {
-	{ t.header() } -> std::same_as<void>;
-	{ t.footer() } -> std::same_as<void>;
+	{ t.header() };
+	{ t.footer() };
 
-	{ t.format("name", category_parameter(0)) } -> std::same_as<void>;
-	{ t.format("name", multiple_choice_parameter()) } -> std::same_as<void>; // TODO: think about this
-	{ t.format("name", permutation_parameter(0)) } -> std::same_as<void>;
+	{ t.format("name", category_parameter(0)) };
+	{ t.format("name", multiple_choice_parameter()) }; // TODO: think about this
+	{ t.format("name", permutation_parameter(0)) };
 };
 
 template<class T>
 concept IsConstrainedTunerFormatter = IsTunerFormatter<T> && requires(T t) {
-	{ t.format("name", predicate_parameter([](auto &&) { return true; })) } -> std::same_as<void>; // TODO: think about this
+	{ t.format("name", category_parameter(0), predicate_parameter([](auto &&) { return true; })) };
+	{ t.format("name", multiple_choice_parameter(), predicate_parameter([](auto &&) { return true; })) };
+	{ t.format("name", permutation_parameter(0), predicate_parameter([](auto &&) { return true; })) };
 };
 
 } // namespace noarr::tuning

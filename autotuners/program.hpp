@@ -10,9 +10,29 @@
 #include "noarr/structures/extra/metamacros.hpp"
 #include "noarr/structures/extra/metastructures.hpp"
 
-/* use DUMMY formatter */
 #ifndef SPECIFIC_TUNING_BEGIN
-#define SPECIFIC_TUNING_BEGIN struct formatter {} formatter
+
+#define SPECIFIC_TUNING_BEGIN(...) struct dummy_formatter { \
+		constexpr void header() const noexcept {} \
+		constexpr void footer() const noexcept {} \
+		template<class ...Args> \
+		constexpr void format(Args&&...) const noexcept {} \
+	}; \
+	/* use dummy_formatter (for static analysis tools) */ \
+	NOARR_TUNE_BEGIN(dummy_formatter())
+
+#endif
+
+#ifndef SPECIFIC_GET_PAR
+
+#define SPECIFIC_GET_PAR(name) (name)
+
+#endif
+
+#ifndef SPECIFIC_TUNING_END
+
+#define SPECIFIC_TUNING_END(...) NOARR_TUNE_END()
+
 #endif
 
 using num_t = float;
@@ -24,7 +44,7 @@ constexpr auto j_st = noarr::vector<'j'>();
 constexpr auto k_st = noarr::vector<'k'>();
 
 struct tuning {
-	SPECIFIC_TUNING_BEGIN;
+	SPECIFIC_TUNING_BEGIN();
 
 	NOARR_TUNE_PAR(block_size, noarr::tuning::choice, 16, 32, 64, 128 , 256, 512);
 
@@ -54,7 +74,16 @@ struct tuning {
 	// TODO: RUNTIME PARAMETERS
 	// TODO: AUTOTUNER PARAMETERS
 
-	NOARR_TUNE_END();
+	SPECIFIC_TUNING_END(
+		SPECIFIC_GET_PAR(block_size),
+		SPECIFIC_GET_PAR(a_order),
+		SPECIFIC_GET_PAR(b_order),
+		SPECIFIC_GET_PAR(c_order),
+		SPECIFIC_GET_PAR(block_i),
+		SPECIFIC_GET_PAR(block_j),
+		SPECIFIC_GET_PAR(block_k),
+		SPECIFIC_GET_PAR(block_order)
+	);
 } T;
 
 constexpr auto reset(auto C) {
@@ -86,9 +115,9 @@ void run_matmul(auto ta, auto tb, auto tc, num_t *pa, num_t *pb, num_t *pc) {
 
 	// trav.template for_dims<'I', J', 'K', 'i', 'j'>(matmul(a, b, c));
 	// modified for the experiments:
-	[=]<std::size_t ...Idxs>(auto order, std::index_sequence<Idxs...>){
-		trav.template for_dims<(char)order->template get<Idxs>()...>(matmul(A, B, C));
-	}(T.block_order, std::make_index_sequence<std::tuple_size_v<std::remove_cvref_t<decltype(*T.block_order)>>>());
+	[=]<std::size_t ...Idxs>(std::index_sequence<Idxs...>){
+		trav.template for_dims<(char)T.block_order->template get<Idxs>()...>(matmul(A, B, C));
+	}(std::make_index_sequence<std::tuple_size_v<std::remove_cvref_t<decltype(*T.block_order)>>>());
 }
 
 }
