@@ -16,6 +16,16 @@ struct category_parameter {
 	std::size_t num_;
 };
 
+template<class T>
+struct range_parameter {
+	constexpr range_parameter(T max) noexcept : min_(0), max_(max), step_((T)1) {}
+	constexpr range_parameter(T min, T max, T step = (T)1) noexcept : min_(min), max_(max) {}
+
+	T min_;
+	T max_;
+	T step_;
+};
+
 // TODO: add multiple choice parameter
 struct multiple_choice_parameter {};
 

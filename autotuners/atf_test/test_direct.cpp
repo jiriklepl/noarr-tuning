@@ -1,4 +1,4 @@
-static const char *GCC_FLAGS = "-O2 -g -std=c++20 -o tmp.bin -I../../../include " __FILE__;
+static const char *GCC_FLAGS = "-O2 -g -std=c++20 -o tmp.bin -I../../../include -I/home/jirka/Documents/extern/atf " __FILE__;
 #define SPECIFIC_TUNING_BEGIN(...) NOARR_TUNE_BEGIN(atf_formatter( \
 		std::cout, \
 		std::make_shared<noarr::tuning::direct_compile_command_builder>("g++", GCC_FLAGS), \

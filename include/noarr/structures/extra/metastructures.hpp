@@ -45,9 +45,9 @@ inline constexpr value_t value;
 struct permutation_t {};
 inline constexpr permutation_t permutation;
 
-// TODO: name
 // TODO: implement
 struct range_t {};
+inline constexpr range_t range;
 
 // TODO: implement
 struct lambda_t {};
@@ -119,8 +119,8 @@ struct interpret<Name, choice_t, Choices...> : contain<Choices...>  {
 	}
 
 	template<class TunerFormatter, class Constraint>
-	constexpr decltype(auto) generate(TunerFormatter &formatter, Constraint &constraint) const {
-		return formatter.format(Name::name, categories_, constraint);
+	constexpr decltype(auto) generate(TunerFormatter &formatter, Constraint &&constraint) const {
+		return formatter.format(Name::name, categories_, std::forward<Constraint>(constraint));
 	}
 
 private:
@@ -147,11 +147,65 @@ struct interpret<Name, choice_t, Choices...> : contain<Choices...>  {
 	constexpr void generate(Ts &&...) const noexcept { }
 };
 
-// TODO: implement
 // TODO: add version with constants
-template<class Name> requires (!IsDefined<Name>)
-struct interpret<Name, range_t, std::size_t, std::size_t, std::size_t> {
+template<class Name, class T> requires (!IsDefined<Name>)
+struct interpret<Name, range_t, T, T, T> : contain<T, T, T> {
+	using name = Name;
 
+	constexpr interpret(placeholder<Name>, range_t, T &&end)
+		: contain<T, T, T>(0, std::forward<T>(end), 1) {}
+
+	constexpr interpret(placeholder<Name>, range_t, T &&begin, T &&end, T &&step = (T)1)
+		: contain<T, T, T>(std::forward<T>(begin), std::forward<T>(end), std::forward<T>(step)) {}
+
+	constexpr decltype(auto) operator*() const noexcept {
+		return this->template get<0>();
+	}
+
+	constexpr decltype(auto) operator->() const noexcept {
+		return &**this;
+	}
+
+	template<class TunerFormatter>	
+	constexpr decltype(auto) generate(TunerFormatter &formatter) const {
+		return formatter.format(Name::name, range_parameter(this->template get<0>(), this->template get<1>(), this->template get<2>()));
+	}
+
+	template<class TunerFormatter, class Constraint>
+	constexpr decltype(auto) generate(TunerFormatter &formatter, Constraint &&constraint) const {
+		return formatter.format(Name::name, range_parameter(this->template get<0>(), this->template get<1>(), this->template get<2>()), std::forward<Constraint>(constraint));
+	}
+};
+
+template<class Name, class T> 
+interpret(placeholder<Name>, range_t, T &&) -> interpret<Name, range_t, T, T, T>;
+
+template<class Name, class T>
+interpret(placeholder<Name>, range_t, T &&, T &&) -> interpret<Name, range_t, T, T, T>;
+
+template<class Name, class T>
+interpret(placeholder<Name>, range_t, T &&, T &&, T &&) -> interpret<Name, range_t, T, T, T>;
+
+template<class Name, class T> requires (IsDefined<Name>)
+struct interpret<Name, range_t, T, T, T> {
+	using name = Name;
+
+	constexpr interpret(placeholder<Name>, range_t, T &&)
+	{}
+
+	constexpr interpret(placeholder<Name>, range_t, T &&, T &&, T && = (T)1)
+	{}
+
+	constexpr T operator*() const noexcept {
+		return (T)Name::value.template get<0>();
+	}
+
+	constexpr decltype(auto) operator->() const noexcept {
+		return &**this;
+	}
+
+	template<class ...Ts>
+	constexpr void generate(Ts &&...) const noexcept { }
 };
 
 template<class Name, class ...Choices> requires (!IsDefined<Name>)
@@ -203,45 +257,57 @@ struct interpret<Name, permutation_t, Choices...> : contain<Choices...>  {
 };
 
 template<class Formatter, class Parameter, class Constraint>
-struct definition_t {
-	using value_type = decltype(std::declval<Parameter>().generate((Formatter&)(std::declval<Formatter>()), (Constraint&)(std::declval<Constraint>())));
+class definition_t {
+public:
+	using return_type = decltype(std::declval<Parameter>().generate((Formatter&)(std::declval<Formatter>()), (Constraint&)(std::declval<Constraint>())));
+	using value_type = std::conditional_t<!std::is_same_v<return_type, void>, return_type, empty_t> ;
 
-	constexpr definition_t(Formatter &formatter, Parameter &parameter, Constraint &constraint) requires (!std::is_same_v<value_type, void>)
-		: value_(parameter.generate(formatter, constraint)) {}
+	constexpr definition_t(Formatter &formatter, Parameter &parameter, Constraint &&constraint) requires (!std::is_same_v<return_type, void>)
+		: value_(parameter.generate(formatter, std::forward<Constraint>(constraint))) {}
 
-	constexpr definition_t(Formatter &formatter, Parameter &parameter, Constraint &constraint) requires (std::is_same_v<value_type, void>) {
-		parameter.generate(formatter, constraint);
+	constexpr definition_t(Formatter &formatter, Parameter &parameter, Constraint &&constraint) requires (std::is_same_v<return_type, void>) {
+		parameter.generate(formatter, std::forward<Constraint>(constraint));
 	}
 
-	constexpr decltype(auto) operator*() const noexcept {
+	constexpr const value_type &operator*() const noexcept {
+		return value_;
+	}
+
+	constexpr value_type &operator*() noexcept {
 		return value_;
 	}
 
 private:
-	std::conditional_t<!std::is_same_v<value_type, void>, value_type, empty_t> value_;
+	value_type value_;
 };
 
 template<class Formatter, class Parameter>
-struct definition_t<Formatter, Parameter, void> {
-	using value_type = decltype(std::declval<Parameter>().generate((Formatter&)(std::declval<Formatter>())));
+class definition_t<Formatter, Parameter, void> {
+public:
+	using return_type = std::remove_reference_t<decltype(std::declval<Parameter>().generate((Formatter&)(std::declval<Formatter>())))>;
+	using value_type = std::conditional_t<!std::is_same_v<return_type, void>, return_type, empty_t> ;
 
-	constexpr definition_t(Formatter &formatter, Parameter &parameter) requires (!std::is_same_v<value_type, void>)
+	constexpr definition_t(Formatter &formatter, Parameter &parameter) requires (!std::is_same_v<return_type, void>)
 		: value_(parameter.generate(formatter)) {}
 	
-	constexpr definition_t(Formatter &formatter, Parameter &parameter) requires (std::is_same_v<value_type, void>) {
+	constexpr definition_t(Formatter &formatter, Parameter &parameter) requires (std::is_same_v<return_type, void>) {
 		parameter.generate(formatter);
 	}
 
-	constexpr decltype(auto) operator*() const noexcept {
+	constexpr const value_type &operator*() const noexcept {
+		return value_;
+	}
+
+	constexpr value_type &operator*() noexcept {
 		return value_;
 	}
 
 private:
-	std::conditional_t<!std::is_same_v<value_type, void>, value_type, empty_t> value_;
+	value_type value_;
 };
 
 template<class Formatter, class Parameter, class Constraint>
-definition_t(Formatter &, Parameter &, Constraint &) -> definition_t<Formatter, Parameter, Constraint>;
+definition_t(Formatter &, Parameter &, Constraint &&) -> definition_t<Formatter, Parameter, Constraint>;
 
 template<class Formatter, class Parameter>
 definition_t(Formatter &, Parameter &) -> definition_t<Formatter, Parameter, void>;
