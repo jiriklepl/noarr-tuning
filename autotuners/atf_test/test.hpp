@@ -12,7 +12,6 @@
 
 #include <atf.hpp>
 
-#include "include/auc_bandit.hpp"
 #include "noarr/structures_extended.hpp"
 #include "noarr/structures/extra/metabuilders.hpp"
 #include "noarr/structures/extra/metamacros.hpp"
