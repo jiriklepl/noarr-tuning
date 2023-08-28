@@ -132,39 +132,51 @@ struct planner_t<union_t<Structs...>, Order, Ending> : contain<union_t<Structs..
 
 	static constexpr std::size_t num_structs = sizeof...(Structs);
 
+	[[nodiscard]]
 	constexpr planner_t(union_struct union_struct, Order order, Ending ending) : base(union_struct, order), ending_(ending) {}
 
+	[[nodiscard]]
 	constexpr union_struct get_union() const noexcept { return base::template get<0>(); }
+
+	[[nodiscard]]
 	constexpr Order get_order() const noexcept { return base::template get<1>(); }
+
+	[[nodiscard]]
 	constexpr Ending get_ending() const noexcept { return ending_; }
 
 	template <std::size_t Idx> requires (Idx < num_structs)
+	[[nodiscard]]
 	constexpr auto get_struct() const noexcept { return get_union().template get<Idx>(); }
 
 	template<class NewOrder>
+	[[nodiscard("returns a new planner")]]
 	constexpr auto order(NewOrder new_order) const noexcept {
 		return planner_t<union_struct, decltype(get_order() ^ new_order), Ending>(get_union(), get_order() ^ new_order, get_ending());
 	}
 
 	// TODO: for_each after for_sections
 	template<class F> requires (std::same_as<Ending, planner_empty_t>)
+	[[nodiscard("returns a new planner")]]
 	constexpr auto for_each(F f) const noexcept {
 		using signature = typename decltype(get_union())::signature;
 		return planner_t<union_struct, Order, planner_ending_t<signature, F>>(get_union(), get_order(), planner_ending_t<signature, F>(f));
 	}
 
 	template<class F> requires (std::same_as<Ending, planner_empty_t>)
+	[[nodiscard("returns a new planner")]]
 	constexpr auto for_each_elem(F f) const noexcept {
 		using signature = typename decltype(get_union())::signature;
 		return planner_t<union_struct, Order, planner_ending_elem_t<signature, F>>(get_union(), get_order(), planner_ending_elem_t<signature, F>(f));
 	}
 
+	[[nodiscard("returns a new planner")]]
 	constexpr auto pop_ending() const noexcept {
 		return planner_t<union_struct, Order, typename Ending::next>(get_union(), get_order(), get_ending().get_next());
 	}
 
 	// TODO: multiple for_sections
 	template<auto... Dims, class F> requires (... && IsDim<decltype(Dims)>)
+	[[nodiscard("returns a new planner")]]
 	constexpr auto for_sections(F f) const noexcept {
 		using union_sig = typename decltype(get_union())::signature;
 		struct sigholder_t {
@@ -182,10 +194,12 @@ struct planner_t<union_t<Structs...>, Order, Ending> : contain<union_t<Structs..
 		for_each_impl(dim_tree(), empty_state);
 	}
 
+	[[nodiscard("returns the state of the planner")]]
 	constexpr auto state() const noexcept {
 		return state_at<union_struct>(top_struct(), empty_state);
 	}
 
+	[[nodiscard("returns the top struct of the planner")]]
 	constexpr auto top_struct() const noexcept {
 		return get_union() ^ get_order();
 	}
@@ -218,6 +232,7 @@ private:
 };
 
 template<class... Ts>
+[[nodiscard("returns a new planner")]]
 constexpr auto planner(const Ts &... s) noexcept 
 { return planner(make_union(s.get_ref()...)); }
 
