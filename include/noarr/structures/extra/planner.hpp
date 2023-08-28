@@ -13,7 +13,7 @@
 
 namespace noarr {
 
-struct planner_emptying_t {
+struct planner_empty_t {
 	using signature = scalar_sig<void>;
 
 	template<class NewOrder>
@@ -26,10 +26,10 @@ struct planner_emptying_t {
 };
 
 template<class Sig, class F>
-struct planner_ending_t {
+struct planner_ending_elem_t {
 	using signature = Sig;
 
-	constexpr planner_ending_t(F f) : f_(f) {}
+	constexpr planner_ending_elem_t(F f) : f_(f) {}
 
 	template<class NewOrder>
 	constexpr auto order(NewOrder new_order) const noexcept {
@@ -38,7 +38,7 @@ struct planner_ending_t {
 			static_assert(!always_false<signature>);
 		};
 
-		return planner_ending_t<typename decltype(sigholder_t() ^ new_order)::signature, F>(f_);
+		return planner_ending_elem_t<typename decltype(sigholder_t() ^ new_order)::signature, F>(f_);
 	}
 
 	template<class Planner>
@@ -64,13 +64,11 @@ private:
 	F f_;
 };
 
-template<class Sig, class F, class Next>
-struct planner_action_t {
+template<class Sig, class F>
+struct planner_ending_t {
 	using signature = Sig;
-	using next = Next;
 
-
-	constexpr planner_action_t(F f, Next next) : f_(f), next_(next) {}
+	constexpr planner_ending_t(F f) : f_(f) {}
 
 	template<class NewOrder>
 	constexpr auto order(NewOrder new_order) const noexcept {
@@ -79,7 +77,34 @@ struct planner_action_t {
 			static_assert(!always_false<signature>);
 		};
 
-		return planner_action_t<typename decltype(sigholder_t() ^ new_order)::signature, F, decltype(next_.order(new_order))>(f_, next_.order(new_order));
+		return planner_ending_t<typename decltype(sigholder_t() ^ new_order)::signature, F>(f_);
+	}
+
+	template<class Planner>
+	constexpr void operator()(Planner planner) const noexcept {
+		f_(planner.state());
+	}
+
+private:
+	F f_;
+};
+
+template<class Sig, class F, class Next>
+struct planner_sections_t {
+	using signature = Sig;
+	using next = Next;
+
+
+	constexpr planner_sections_t(F f, Next next) : f_(f), next_(next) {}
+
+	template<class NewOrder>
+	constexpr auto order(NewOrder new_order) const noexcept {
+		struct sigholder_t {
+			using signature = Sig;
+			static_assert(!always_false<signature>);
+		};
+
+		return planner_sections_t<typename decltype(sigholder_t() ^ new_order)::signature, F, decltype(next_.order(new_order))>(f_, next_.order(new_order));
 	}
 
 	constexpr const next &get_next() const noexcept { return next_; }
@@ -122,10 +147,16 @@ struct planner_t<union_t<Structs...>, Order, Ending> : contain<union_t<Structs..
 	}
 
 	// TODO: for_each after for_sections
-	template<class F> requires (std::same_as<Ending, planner_emptying_t>)
+	template<class F> requires (std::same_as<Ending, planner_empty_t>)
 	constexpr auto for_each(F f) const noexcept {
 		using signature = typename decltype(get_union())::signature;
 		return planner_t<union_struct, Order, planner_ending_t<signature, F>>(get_union(), get_order(), planner_ending_t<signature, F>(f));
+	}
+
+	template<class F> requires (std::same_as<Ending, planner_empty_t>)
+	constexpr auto for_each_elem(F f) const noexcept {
+		using signature = typename decltype(get_union())::signature;
+		return planner_t<union_struct, Order, planner_ending_elem_t<signature, F>>(get_union(), get_order(), planner_ending_elem_t<signature, F>(f));
 	}
 
 	constexpr auto pop_ending() const noexcept {
@@ -143,10 +174,10 @@ struct planner_t<union_t<Structs...>, Order, Ending> : contain<union_t<Structs..
 
 		using signature = typename decltype(sigholder_t() ^ reorder<Dims...>())::signature;
 
-		return planner_t<union_struct, Order, planner_action_t<signature, F, Ending>>(get_union(), get_order(), planner_action_t<signature, F, Ending>(f, get_ending()));
+		return planner_t<union_struct, Order, planner_sections_t<signature, F, Ending>>(get_union(), get_order(), planner_sections_t<signature, F, Ending>(f, get_ending()));
 	}
 
-	constexpr void operator()() const noexcept requires (!std::same_as<Ending, planner_emptying_t>) {
+	constexpr void operator()() const noexcept requires (!std::same_as<Ending, planner_empty_t>) {
 		using dim_tree = sig_dim_tree<typename decltype(top_struct())::signature>;
 		for_each_impl(dim_tree(), empty_state);
 	}
@@ -191,7 +222,7 @@ constexpr auto planner(const Ts &... s) noexcept
 { return planner(make_union(s.get_ref()...)); }
 
 template<class... Ts>
-constexpr planner_t<union_t<Ts...>, neutral_proto, planner_emptying_t> planner(union_t<Ts...> u) noexcept { return planner_t<union_t<Ts...>, neutral_proto, planner_emptying_t>(u, neutral_proto(), planner_emptying_t()); }
+constexpr planner_t<union_t<Ts...>, neutral_proto, planner_empty_t> planner(union_t<Ts...> u) noexcept { return planner_t<union_t<Ts...>, neutral_proto, planner_empty_t>(u, neutral_proto(), planner_empty_t()); }
 
 } // namespace noarr
 

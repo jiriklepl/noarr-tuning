@@ -42,30 +42,33 @@ TEST_CASE("Planner trivial", "[planner]") {
 
 	int i = 0;
 
-	auto a_plan = planner(a).for_each([&i](auto state, auto &&a) {
+	auto a_plan = planner(a).for_each_elem([&i](auto state, auto &&a) {
 		auto [x, y] = get_indices<'x', 'y'>(state);
 		a = x == y;
 	});
 
-	auto b_plan = planner(b).for_each([&i](auto &&b) {
+	auto b_plan = planner(b).for_each_elem([&i](auto &&b) {
 		b = 1;
 	});
 
-	auto c_plan = planner(c).for_each([&i](auto &&c) {
+	auto c_plan = planner(c).for_each_elem([&i](auto &&c) {
 		c = 0;
 	});
 
-	auto abc_plan = planner(a, b, c).for_each([&i](auto &&a, auto &&b, auto &&c) {
+	auto abc_plan = planner(a, b, c).for_each_elem([&i](auto &&a, auto &&b, auto &&c) {
 		c += a * b;
 		i++;
 	}).template for_sections<'x', 'z'>([](auto inner) {
 		auto z = get_index<'z'>(inner.state());
 		auto x = get_index<'x'>(inner.state());
 
+		REQUIRE(z < 40);
+		REQUIRE(x < 20);
+
 		inner();
 	}).order(reorder<'x', 'z', 'y'>());
 
-	auto c_check_plan = planner(c).for_each([&i](auto &&c) {
+	auto c_check_plan = planner(c).for_each_elem([&i](auto &&c) {
 		REQUIRE(c == 1);
 	}).order(hoist<'z'>());
 
