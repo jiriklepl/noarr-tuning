@@ -312,10 +312,7 @@ concept IsSimple = true
 	;
 
 template<class T>
-concept IsContainable = true
-	&& std::is_standard_layout_v<T>
-	&& (!std::is_empty_v<T> || std::is_default_constructible_v<T>) /* empty -> default_constructible */
-	;
+concept IsContainable = (!std::is_empty_v<T> || std::is_default_constructible_v<T>); /* empty -> default_constructible */
 
 namespace constexpr_arithmetic {
 
