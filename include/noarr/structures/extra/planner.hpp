@@ -214,13 +214,13 @@ private:
 	constexpr void for_each_impl_dep(F, auto, std::index_sequence<>) const noexcept {}
 	template<class DimTree, IsState State>
 	constexpr void for_each_impl(DimTree, State state) const noexcept
-	requires (IsGroundSig<typename decltype(get_ending().order(fix(order(fix(state)).state())))::signature>
+	requires (IsGroundSig<typename decltype(get_ending().order(fix(state_at<union_struct>(top_struct(), state))))::signature>
 		|| std::same_as<DimTree, dim_sequence<>>) {
 		get_ending()(order(fix(state))); // TODO: maybe run ending on reordered planner
 	}
 	template<auto Dim, class ...Branches, IsState State>
 	constexpr void for_each_impl(dim_tree<Dim, Branches...>, State state) const noexcept
-	requires (!IsGroundSig<typename decltype(get_ending().order(fix(order(fix(state)).state())))::signature>) {
+	requires (!IsGroundSig<typename decltype(get_ending().order(fix(state_at<union_struct>(top_struct(), state))))::signature>) {
 		using dim_sig = sig_find_dim<Dim, State, typename decltype(top_struct())::signature>;
 		if constexpr(dim_sig::dependent) {
 			for_each_impl_dep<Dim, Branches...>(state, std::index_sequence_for<Branches...>());
