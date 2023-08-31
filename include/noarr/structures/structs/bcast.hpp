@@ -19,36 +19,34 @@ struct bcast_t : contain<T> {
 	constexpr bcast_t() noexcept = default;
 	explicit constexpr bcast_t(T sub_structure) noexcept : contain<T>(sub_structure) {}
 
-	constexpr T sub_structure() const noexcept { return contain<T>::template get<0>(); }
+	constexpr T sub_structure() const noexcept { return contain<T>::get(); }
+	constexpr auto sub_state(IsState auto state) const noexcept { return state.template remove<index_in<Dim>, length_in<Dim>>(); }
 
 	static_assert(!T::signature::template any_accept<Dim>, "Dimension name already used");
 	using signature = function_sig<Dim, unknown_arg_length, typename T::signature>;
 
 	constexpr auto size(IsState auto state) const noexcept {
-		return sub_structure().size(state.template remove<index_in<Dim>, length_in<Dim>>());
+		return sub_structure().size(sub_state(state));
 	}
 
-	template<class Sub, IsState State>
+	template<class Sub, IsState State> requires (HasSetIndex<State, Dim>)
 	constexpr auto strict_offset_of(State state) const noexcept {
-		static_assert(State::template contains<index_in<Dim>>, "All indices must be set");
-		return offset_of<Sub>(sub_structure(), state.template remove<index_in<Dim>, length_in<Dim>>());
+		return offset_of<Sub>(sub_structure(), sub_state(state));
 	}
 
-	template<IsDim auto QDim, IsState State>
+	template<IsDim auto QDim, IsState State> requires (QDim != Dim || HasNotSetIndex<State, QDim>)
 	constexpr auto length(State state) const noexcept {
 		if constexpr(QDim == Dim) {
-			static_assert(!State::template contains<index_in<Dim>>, "Index already set");
 			static_assert(State::template contains<length_in<Dim>>, "This length has not been set yet");
 			return state.template get<length_in<Dim>>();
 		} else {
-			return sub_structure().template length<QDim>(state.template remove<index_in<Dim>, length_in<Dim>>());
+			return sub_structure().template length<QDim>(sub_state(state));
 		}
 	}
 
-	template<class Sub, IsState State>
+	template<class Sub, IsState State> requires (HasSetIndex<State, Dim>)
 	constexpr auto strict_state_at(State state) const noexcept {
-		static_assert(State::template contains<index_in<Dim>>, "All indices must be set");
-		return state_at<Sub>(sub_structure(), state.template remove<index_in<Dim>, length_in<Dim>>());
+		return state_at<Sub>(sub_structure(), sub_state(state));
 	}
 };
 

@@ -17,11 +17,10 @@ template<std::size_t Value, std::size_t Mul>
 constexpr std::size_t pad_to_multiple = (Value + Mul - 1) / Mul * Mul;
 
 struct simple_cg_t : contain<std::size_t, std::size_t> {
-	using base = contain<std::size_t, std::size_t>;
-	using base::base;
+	using contain<std::size_t, std::size_t>::contain;
 
-	constexpr std::size_t thread_rank() const noexcept { return base::template get<0>(); }
-	constexpr std::size_t num_threads() const noexcept { return base::template get<1>(); }
+	constexpr std::size_t thread_rank() const noexcept { return this->template get<0>(); }
+	constexpr std::size_t num_threads() const noexcept { return this->template get<1>(); }
 };
 
 } // namespace helpers
@@ -45,7 +44,7 @@ struct cuda_stripe_index {
 
 template<std::size_t NumStripes, class ElemType, std::size_t BankCount, std::size_t BankWidth, class T>
 struct cuda_striped_t : contain<T> {
-	static_assert(is_struct<ElemType>(), "The element type of cuda_striped must be a noarr structure.");
+	static_assert(is_struct_v<ElemType>, "The element type of cuda_striped must be a noarr structure.");
 
 	static constexpr char name[] = "cuda_striped_t";
 	using params = struct_params<
@@ -58,7 +57,8 @@ struct cuda_striped_t : contain<T> {
 	constexpr cuda_striped_t() noexcept = default;
 	explicit constexpr cuda_striped_t(T sub_structure) noexcept : contain<T>(sub_structure) {}
 
-	constexpr T sub_structure() const noexcept { return contain<T>::template get<0>(); }
+	constexpr T sub_structure() const noexcept { return contain<T>::get(); }
+	constexpr auto sub_state(IsState auto state) const noexcept { return state.template remove<cuda_stripe_index>(); }
 
 private:
 	static constexpr std::size_t elem_size = decltype(std::declval<ElemType>().size(state<>()))::value;
@@ -81,7 +81,7 @@ public:
 	constexpr auto size(IsState auto state) const noexcept {
 		using namespace constexpr_arithmetic;
 		// substructure size
-		auto sub_size = sub_structure().size(state.template remove<cuda_stripe_index>());
+		auto sub_size = sub_structure().size(sub_state(state));
 		// total elements in each stripe = total elements in sub-structure
 		auto sub_elements = sub_size / make_const<elem_size>();
 		// stripe length = ceil(total elements in stripe / total elements in stripe width)
@@ -93,7 +93,7 @@ public:
 	template<class Sub>
 	constexpr auto strict_offset_of(IsState auto state) const noexcept {
 		using namespace constexpr_arithmetic;
-		auto sub_offset = offset_of<Sub>(sub_structure(), state.template remove<cuda_stripe_index>());
+		auto sub_offset = offset_of<Sub>(sub_structure(), sub_state(state));
 		auto offset_major = sub_offset / make_const<stripe_width>();
 		if constexpr(std::is_same_v<Sub, ElemType> && stripe_width_elems == 1) {
 			// Optimization: offset_minor should be zero.
@@ -106,7 +106,7 @@ public:
 
 	template<IsDim auto QDim>
 	constexpr auto length(IsState auto state) const noexcept {
-		return sub_structure().template length<QDim>(state.template remove<cuda_stripe_index>());
+		return sub_structure().template length<QDim>(sub_state(state));
 	}
 
 	template<class Sub>
@@ -146,7 +146,7 @@ private:
 
 template<std::size_t NumStripes, class ElemType, std::size_t BankCount, std::size_t BankWidth>
 struct cuda_striped_proto {
-	static_assert(is_struct<ElemType>(), "The element type of cuda_striped must be a noarr structure. Omit the type to imply scalar<...>, or specify scalar<...> (or any other noarr structure) explicitly.");
+	static_assert(is_struct_v<ElemType>, "The element type of cuda_striped must be a noarr structure. Omit the type to imply scalar<...>, or specify scalar<...> (or any other noarr structure) explicitly.");
 	static constexpr bool proto_preserves_layout = false;
 
 	template<class Struct>

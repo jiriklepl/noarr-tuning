@@ -74,14 +74,14 @@ namespace helpers {
 
 template<class T>
 struct is_struct_impl : std::false_type {};
-template<class T> requires (is_signature_v<typename T::signature>)
+template<class T> requires requires { typename T::signature; }
 struct is_struct_impl<T> : std::true_type {
-	static_assert(is_signature<typename T::signature>());
+	static_assert(is_signature_v<typename T::signature>, "The signature of a structure must be a valid signature");
 };
 
 template<class T>
 struct is_proto_struct_impl : std::false_type {};
-template<class T> requires std::is_same_v<decltype(T::proto_preserves_layout), const bool>
+template<class T> requires std::same_as<decltype(T::proto_preserves_layout), const bool>
 struct is_proto_struct_impl<T> : std::true_type {};
 
 template<class F, bool PreservesLayout>
@@ -147,12 +147,12 @@ constexpr auto make_proto(F f) noexcept {
 	return helpers::make_proto_impl<F, PreservesLayout>(f);
 }
 
-template<class Struct, class ProtoStruct> requires (is_struct_v<Struct> && is_proto_struct_v<ProtoStruct>)
+template<class Struct, class ProtoStruct> requires (IsStruct<Struct> && IsProtoStruct<ProtoStruct>)
 constexpr auto operator ^(Struct s, ProtoStruct p) noexcept {
 	return p.instantiate_and_construct(s);
 }
 
-template<class... Structs, class ProtoStruct> requires (is_proto_struct_v<ProtoStruct> && ... && is_struct_v<Structs>)
+template<class... Structs, class ProtoStruct> requires (IsProtoStruct<ProtoStruct> && ... && IsStruct<Structs>)
 constexpr auto operator ^(pack<Structs...> s, ProtoStruct p) noexcept {
 	return helpers::pass_pack(s, p, std::make_index_sequence<sizeof...(Structs)>());
 }
@@ -162,7 +162,7 @@ constexpr auto operator ^(Arg s, pack<Args...> p) noexcept {
 	return helpers::pass_pack(s, p, std::make_index_sequence<sizeof...(Args)>());
 }
 
-template<class... Structs, class Arg> requires (... && is_struct_v<Structs>)
+template<class... Structs, class Arg> requires (... && IsStruct<Structs>)
 constexpr auto operator ^(pack<Structs...> s, to_each<Arg> p) noexcept {
 	return helpers::pass_pack(s, p, std::make_index_sequence<sizeof...(Structs)>());
 }
@@ -189,21 +189,21 @@ struct compose_proto<pack<InnerProtoStructs...>, OuterProtoStruct> : contain<pac
 
 	template<class Struct>
 	constexpr auto instantiate_and_construct(Struct s) const noexcept {
-		return s ^ base::template get<0>() ^ base::template get<1>();
+		return s ^ this->template get<0>() ^ this->template get<1>();
 	}
 
 	template<class... Structs> requires (sizeof...(Structs) != 1)
 	constexpr auto instantiate_and_construct(Structs... s) const noexcept {
-		return pack(s...) ^ base::template get<0>() ^ base::template get<1>();
+		return pack(s...) ^ this->template get<0>() ^ this->template get<1>();
 	}
 };
 
-template<class InnerProtoStruct, class OuterProtoStruct> requires (is_proto_struct_v<InnerProtoStruct> && is_proto_struct_v<OuterProtoStruct>)
+template<class InnerProtoStruct, class OuterProtoStruct> requires (IsProtoStruct<InnerProtoStruct> && IsProtoStruct<OuterProtoStruct>)
 constexpr compose_proto<pack<InnerProtoStruct>, OuterProtoStruct> operator ^(InnerProtoStruct i, OuterProtoStruct o) noexcept {
 	return compose_proto<pack<InnerProtoStruct>, OuterProtoStruct>(pack(i), o);
 }
 
-template<class... InnerProtoStructs, class OuterProtoStruct> requires (is_proto_struct_v<OuterProtoStruct> && ... && is_proto_struct_v<InnerProtoStructs>)
+template<class... InnerProtoStructs, class OuterProtoStruct> requires (IsProtoStruct<OuterProtoStruct> && ... && IsProtoStruct<InnerProtoStructs>)
 constexpr compose_proto<pack<InnerProtoStructs...>, OuterProtoStruct> operator ^(pack<InnerProtoStructs...> i, OuterProtoStruct o) noexcept {
 	return compose_proto<pack<InnerProtoStructs...>, OuterProtoStruct>(i, o);
 }

@@ -24,7 +24,7 @@ struct contain_impl<T, TS...> {
 	template<class T_, class ...TS_>
 	explicit constexpr contain_impl(T_ &&t, TS_ &&... ts) noexcept : t_(std::forward<T_>(t)), ts_(std::forward<TS_>(ts)...) {}
 
-	template<std::size_t I>
+	template<std::size_t I> requires (I < 1 + sizeof...(TS))
 	constexpr decltype(auto) get() const noexcept {
 		if constexpr(I == 0)
 			return t_.template get<0>();
@@ -43,7 +43,7 @@ struct contain_impl<T, TS...> : private contain_impl<TS...> {
 	template<class T_, class ...TS_>
 	explicit constexpr contain_impl(T_ &&t, TS_ &&...) noexcept : t_(std::forward<T_>(t)) {}
 
-	template<std::size_t I>
+	template<std::size_t I> requires (I < 1 + sizeof...(TS))
 	constexpr decltype(auto) get() const noexcept {
 		if constexpr(I == 0)
 			return t_.template get<0>();
@@ -62,7 +62,7 @@ struct contain_impl<T, TS...> : private contain_impl<TS...> {
 	template<class T_, class ...TS_>
 	explicit constexpr contain_impl(T_ &&, TS_ &&...ts) noexcept : contain_impl<TS...>(std::forward<TS_>(ts)...) {}
 
-	template<std::size_t I>
+	template<std::size_t I> requires (I < 1 + sizeof...(TS))
 	constexpr decltype(auto) get() const noexcept {
 		if constexpr(I == 0)
 			return T();
@@ -78,9 +78,8 @@ struct contain_impl<T> {
 	template<class T_>
 	explicit constexpr contain_impl(T_ &&) noexcept {}
 
-	template<std::size_t I>
+	template<std::size_t I = 0> requires (I == 0)
 	constexpr decltype(auto) get() const noexcept {
-		static_assert(I == 0, "index out of bounds");
 		return T();
 	}
 };
@@ -92,9 +91,8 @@ struct contain_impl<T> {
 	template<class T_>
 	explicit constexpr contain_impl(T_ &&t) noexcept : t_(std::forward<T_>(t)) {}
 
-	template<std::size_t I>
+	template<std::size_t I = 0> requires (I == 0)
 	constexpr const T &get() const noexcept {
-		static_assert(I == 0, "index out of bounds");
 		return t_;
 	}
 
@@ -141,18 +139,13 @@ struct flexible_contain<> : private helpers::contain_impl<> {
 
 } // namespace noarr
 
-
-namespace std {
-
 template<std::size_t I, class... TS>
-struct tuple_element<I, noarr::contain<TS...>> {
+struct std::tuple_element<I, noarr::contain<TS...>> {
 	using type = decltype(std::declval<noarr::contain<TS...>>().template get<I>());
 };
 
 template<class... TS>
-struct tuple_size<noarr::contain<TS...>>
+struct std::tuple_size<noarr::contain<TS...>>
 	: std::integral_constant<std::size_t, sizeof...(TS)> { };
-
-} // namespace std
 
 #endif // NOARR_STRUCTURES_CONTAIN_HPP
