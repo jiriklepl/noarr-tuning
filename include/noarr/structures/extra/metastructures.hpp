@@ -63,7 +63,16 @@ struct interpret;
 template<class Name, class Parameter, class ...Things>
 interpret(placeholder<Name>, Parameter, Things&&...) -> interpret<Name, Parameter, Things...>;
 
-// TODO: choice can also contain other metastructures
+template<class Name, class T> 
+interpret(placeholder<Name>, range_t, T &&) -> interpret<Name, range_t, std::remove_cvref_t<T>, std::remove_cvref_t<T>, std::remove_cvref_t<T>>;
+
+template<class Name, class T>
+interpret(placeholder<Name>, range_t, T &&, T &&) -> interpret<Name, range_t, std::remove_cvref_t<T>, std::remove_cvref_t<T>, std::remove_cvref_t<T>>;
+
+template<class Name, class T>
+interpret(placeholder<Name>, range_t, T &&, T &&, T &&) -> interpret<Name, range_t, std::remove_cvref_t<T>, std::remove_cvref_t<T>, std::remove_cvref_t<T>>;
+
+#ifdef NOARR_TUNE
 
 template<class Name> requires (!IsDefined<Name>)
 struct interpret<Name, begin_t> : contain<> {
@@ -81,7 +90,8 @@ template<class Name, class ...Args> requires (!IsDefined<Name>)
 struct interpret<Name, end_t, Args...> : contain<Args...> {
 	using name = Name;
 
-	constexpr interpret(placeholder<Name>, end_t, const Args &...args) noexcept : contain<Args...>(args...) {
+	template<class ...Ts>
+	constexpr interpret(placeholder<Name>, end_t, Ts &&...args) noexcept : contain<Args...>(std::forward<Ts>(args)...) {
 		
 	};
 
@@ -102,8 +112,9 @@ template<class Name, class ...Choices> requires (!IsDefined<Name>)
 struct interpret<Name, choice_t, Choices...> : contain<Choices...>  {
 	using name = Name;
 
-	constexpr interpret(placeholder<Name>, choice_t, Choices &&...choices)
-		: contain<Choices...>(std::forward<Choices>(choices)...) {}
+	template<class ...Ts>
+	constexpr interpret(placeholder<Name>, choice_t, Ts &&...choices)
+		: contain<Choices...>(std::forward<Ts>(choices)...) {}
 
 	constexpr decltype(auto) operator*() const noexcept {
 		return this->template get<0>();
@@ -127,36 +138,18 @@ private:
 	static constexpr auto categories_ = category_parameter(sizeof...(Choices));
 };
 
-// TODO: `Name::value` -> `Name::choice` or something?
-template<class Name, class ...Choices> requires (IsDefined<Name>)
-struct interpret<Name, choice_t, Choices...> : contain<Choices...>  {
-	using name = Name;
-
-	constexpr interpret(placeholder<Name>, choice_t, Choices &&...choices)
-		: contain<Choices...>(std::forward<Choices>(choices)...) {}
-
-	constexpr decltype(auto) operator*() const noexcept {
-		return this->template get<Name::value.template get<0>()>();
-	}
-
-	constexpr decltype(auto) operator->() const noexcept {
-		return &**this;
-	}
-
-	template<class ...Ts>
-	constexpr void generate(Ts &&...) const noexcept { }
-};
-
 // TODO: add version with constants
-template<class Name, class T> requires (!IsDefined<Name>)
-struct interpret<Name, range_t, T, T, T> : contain<T, T, T> {
+template<class Name, class Range> requires (!IsDefined<Name>)
+struct interpret<Name, range_t, Range, Range, Range> : contain<Range, Range, Range> {
 	using name = Name;
 
+	template<class T>
 	constexpr interpret(placeholder<Name>, range_t, T &&end)
-		: contain<T, T, T>(0, std::forward<T>(end), 1) {}
+		: contain<Range, Range, Range>(0, std::forward<T>(end), 1) {}
 
-	constexpr interpret(placeholder<Name>, range_t, T &&begin, T &&end, T &&step = (T)1)
-		: contain<T, T, T>(std::forward<T>(begin), std::forward<T>(end), std::forward<T>(step)) {}
+	template<class Start, class End, class Step>
+	constexpr interpret(placeholder<Name>, range_t, Start &&begin, End &&end, Step &&step = (Range)1)
+		: contain<Range, Range, Range>(std::forward<Start>(begin), std::forward<End>(end), std::forward<Step>(step)) {}
 
 	constexpr decltype(auto) operator*() const noexcept {
 		return this->template get<0>();
@@ -177,43 +170,13 @@ struct interpret<Name, range_t, T, T, T> : contain<T, T, T> {
 	}
 };
 
-template<class Name, class T> 
-interpret(placeholder<Name>, range_t, T &&) -> interpret<Name, range_t, T, T, T>;
-
-template<class Name, class T>
-interpret(placeholder<Name>, range_t, T &&, T &&) -> interpret<Name, range_t, T, T, T>;
-
-template<class Name, class T>
-interpret(placeholder<Name>, range_t, T &&, T &&, T &&) -> interpret<Name, range_t, T, T, T>;
-
-template<class Name, class T> requires (IsDefined<Name>)
-struct interpret<Name, range_t, T, T, T> {
-	using name = Name;
-
-	constexpr interpret(placeholder<Name>, range_t, T &&)
-	{}
-
-	constexpr interpret(placeholder<Name>, range_t, T &&, T &&, T && = (T)1)
-	{}
-
-	constexpr T operator*() const noexcept {
-		return (T)Name::value.template get<0>();
-	}
-
-	constexpr decltype(auto) operator->() const noexcept {
-		return &**this;
-	}
-
-	template<class ...Ts>
-	constexpr void generate(Ts &&...) const noexcept { }
-};
-
 template<class Name, class ...Choices> requires (!IsDefined<Name>)
 struct interpret<Name, permutation_t, Choices...> : contain<Choices...>  {
 	using name = Name;
 
-	constexpr interpret(placeholder<Name>, permutation_t, Choices &&...choices)
-		: contain<Choices...>(std::forward<Choices>(choices)...) {}
+	template<class ...Ts>
+	constexpr interpret(placeholder<Name>, permutation_t, Ts &&...choices)
+		: contain<Choices...>(std::forward<Ts>(choices)...) {}
 
 	constexpr const contain<Choices...> &operator*() const noexcept {
 		return *this;
@@ -237,12 +200,147 @@ private:
 	static constexpr auto permutation_ = permutation_parameter(sizeof...(Choices));
 };
 
+#else
+
+template<class Name> requires (!IsDefined<Name>)
+struct interpret<Name, begin_t> : contain<> {
+	using name = Name;
+
+	constexpr interpret(placeholder<Name>, begin_t) noexcept : contain<>() {}
+
+	template<class ...Ts>
+	constexpr void generate(Ts &&...) const noexcept {}
+};
+
+template<class Name, class ...Args> requires (!IsDefined<Name>)
+struct interpret<Name, end_t, Args...> : contain<> {
+	using name = Name;
+
+	template<class ...Ts>
+	constexpr interpret(placeholder<Name>, end_t, Ts &&...) noexcept : contain<>() {}
+
+	template<class ...Ts>
+	constexpr void generate(Ts &&...) const noexcept {}
+};
+
+template<class Name, class Choice, class ...Choices> requires (!IsDefined<Name>)
+struct interpret<Name, choice_t, Choice, Choices...> : contain<Choice> {
+	using name = Name;
+
+	template<class T, class ...Ts>
+	constexpr interpret(placeholder<Name>, choice_t, T &&choice, Ts &&...)
+		: contain<Choice>(std::forward<T>(choice)) {}
+
+	constexpr decltype(auto) operator*() const noexcept {
+		return this->get();
+	}
+
+	constexpr decltype(auto) operator->() const noexcept {
+		return &**this;
+	}
+
+	template<class ...Ts>
+	constexpr void generate(Ts &&...) const noexcept {}
+};
+
+// TODO: add version with constants
+template<class Name, class Range> requires (!IsDefined<Name>)
+struct interpret<Name, range_t, Range, Range, Range> : contain<Range> {
+	using name = Name;
+
+	template<class T>
+	constexpr interpret(placeholder<Name>, range_t, T &&)
+		: contain<Range>(0) {}
+
+	template<class Start, class End, class Step>
+	constexpr interpret(placeholder<Name>, range_t, Start &&begin, End &&, Step && = (Range)1)
+		: contain<Range>(std::forward<Start>(begin)) {}
+
+	constexpr decltype(auto) operator*() const noexcept {
+		return this->get();
+	}
+
+	constexpr decltype(auto) operator->() const noexcept {
+		return &**this;
+	}
+
+	template<class ...Ts>
+	constexpr void generate(Ts &&...) const noexcept {}
+};
+
+template<class Name, class ...Choices> requires (!IsDefined<Name>)
+struct interpret<Name, permutation_t, Choices...> : contain<Choices...>  {
+	using name = Name;
+
+	template<class ...Ts>
+	constexpr interpret(placeholder<Name>, permutation_t, Ts &&...choices)
+		: contain<Choices...>(std::forward<Ts>(choices)...) {}
+
+	constexpr const contain<Choices...> &operator*() const noexcept {
+		return *this;
+	}
+
+	constexpr decltype(auto) operator->() const noexcept {
+		return &**this;
+	}
+
+	template<class ...Ts>
+	constexpr void generate(Ts &&...) const noexcept {}
+};
+
+#endif // NOARR_TUNE
+
+template<class Name, class ...Choices> requires (IsDefined<Name>)
+struct interpret<Name, choice_t, Choices...> : contain<Choices...>  {
+	using name = Name;
+
+	template<class ...Ts>
+	constexpr interpret(placeholder<Name>, choice_t, Ts &&...choices)
+		: contain<Choices...>(std::forward<Ts>(choices)...) {}
+
+	constexpr decltype(auto) operator*() const noexcept {
+		return this->template get<Name::value.template get<0>()>();
+	}
+
+	constexpr decltype(auto) operator->() const noexcept {
+		return &**this;
+	}
+
+	template<class ...Ts>
+	constexpr void generate(Ts &&...) const noexcept { }
+};
+
+template<class Name, class Range> requires (IsDefined<Name>)
+struct interpret<Name, range_t, Range, Range, Range> {
+	using name = Name;
+
+	template<class T>
+	constexpr interpret(placeholder<Name>, range_t, T &&)
+	{}
+
+	template<class Start, class End, class Step>
+	constexpr interpret(placeholder<Name>, range_t, Start &&, End &&, Step && = (Range)1)
+	{}
+
+	constexpr Range operator*() const noexcept {
+		return (Range)Name::value.template get<0>();
+	}
+
+	constexpr decltype(auto) operator->() const noexcept {
+		return &**this;
+	}
+
+	template<class ...Ts>
+	constexpr void generate(Ts &&...) const noexcept { }
+};
+
 template<class Name, class ...Choices> requires (IsDefined<Name>)
 struct interpret<Name, permutation_t, Choices...> : contain<Choices...>  {
 	using name = Name;
 
-	constexpr interpret(placeholder<Name>, permutation_t, Choices &&...choices)
-		: contain<Choices...>(std::forward<Choices>(choices)...) {}
+	template<class ...Ts>
+	constexpr interpret(placeholder<Name>, permutation_t, Ts &&...choices)
+		: contain<Choices...>(std::forward<Ts>(choices)...) {}
 
 	constexpr const contain<Choices...> &operator*() const noexcept {
 		return *this;

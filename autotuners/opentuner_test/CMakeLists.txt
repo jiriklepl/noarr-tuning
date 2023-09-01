@@ -10,9 +10,11 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_executable(opentuner_test_direct test_direct.cpp)
 target_include_directories(opentuner_test_direct PUBLIC ../../include)
+target_compile_definitions(opentuner_test_direct PUBLIC NOARR_TUNE)
 
 add_executable(opentuner_test_cmake test_cmake.cpp)
 target_include_directories(opentuner_test_cmake PUBLIC ../../include)
+target_compile_definitions(opentuner_test_cmake PUBLIC NOARR_TUNE)
 
 add_executable(opentuner_test_cmake_kernel test_cmake.cpp)
 target_include_directories(opentuner_test_cmake_kernel PUBLIC ../../include)

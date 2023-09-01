@@ -13,5 +13,9 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 include_directories(../../include)
 
 add_executable(atf_test_direct test_direct.cpp)
+target_compile_options(atf_test_direct PRIVATE NOARR_TUNE)
+
 add_executable(atf_test_cmake test_cmake.cpp)
+target_compile_definitions(atf_test_cmake PRIVATE NOARR_TUNE)
+
 add_executable(atf_test_cmake_kernel test_cmake.cpp)
