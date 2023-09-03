@@ -181,7 +181,7 @@ struct planner_t<union_t<Structs...>, Order, Ending> : contain<union_t<Structs..
 		using union_sig = typename decltype(get_union())::signature;
 		struct sigholder_t {
 			using signature = union_sig;
-			static_assert(!always_false<signature>);
+			static_assert(!always_false<signature>); // suppresses warnings
 		};
 
 		using signature = typename decltype(sigholder_t() ^ reorder<Dims...>())::signature;
@@ -216,7 +216,7 @@ private:
 	constexpr void for_each_impl(DimTree, State state) const noexcept
 	requires (IsGroundSig<typename decltype(get_ending().order(fix(state_at<union_struct>(top_struct(), state))))::signature>
 		|| std::same_as<DimTree, dim_sequence<>>) {
-		get_ending()(order(fix(state))); // TODO: maybe run ending on reordered planner
+		get_ending()(order(fix(state)));
 	}
 	template<auto Dim, class ...Branches, IsState State>
 	constexpr void for_each_impl(dim_tree<Dim, Branches...>, State state) const noexcept

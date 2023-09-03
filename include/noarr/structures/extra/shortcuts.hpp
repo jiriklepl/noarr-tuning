@@ -190,8 +190,7 @@ constexpr auto state_construct_fix(StateItem, IsState auto) noexcept {
 } // namespace helpers
 
 template<class... StateItem>
-constexpr auto fix(state<StateItem...> state) noexcept {
-	(void)state;
+constexpr auto fix([[maybe_unused]] state<StateItem...> state) noexcept {
 	return (neutral_proto() ^ ... ^ helpers::state_construct_fix(StateItem(), state));
 }
 

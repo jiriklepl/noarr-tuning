@@ -1,11 +1,10 @@
-#ifndef NOARR_STRUCTURES_METAMACROS_HPP
-#define NOARR_STRUCTURES_METAMACROS_HPP
+#ifndef NOARR_STRUCTURES_TUNING_MACROS_HPP
+#define NOARR_STRUCTURES_TUNING_MACROS_HPP
 
-#include "../extra/metastructures.hpp"
+#include "../tuning/tuning.hpp"
 
 // TODO: pass by in-code define
 // TODO: pass by code
-// TODO: eager
 
 // TODO: BEGIN and END asserts
 // TODO: CONSTRAINED_PAR assert
@@ -58,4 +57,4 @@
 #endif // NOARR_PASS_BY_DEFINE
 
 
-#endif // NOARR_STRUCTURES_METAMACROS_HPP
+#endif // NOARR_STRUCTURES_TUNING_MACROS_HPP

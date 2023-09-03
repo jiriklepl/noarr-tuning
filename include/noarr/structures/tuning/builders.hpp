@@ -1,5 +1,5 @@
-#ifndef NOARR_STRUCTURES_METABUILDERS_HPP
-#define NOARR_STRUCTURES_METABUILDERS_HPP
+#ifndef NOARR_STRUCTURES_TUNING_BUILDERS_HPP
+#define NOARR_STRUCTURES_TUNING_BUILDERS_HPP
 
 #include <ostream>
 #include <string_view>
@@ -180,4 +180,4 @@ static_assert(IsCompileCommandBuilder<cmake_compile_command_builder>);
 
 } // namespace noarr::tuning
 
-#endif // NOARR_STRUCTURES_METABUILDERS_HPP
+#endif // NOARR_STRUCTURES_TUNING_BUILDERS_HPP

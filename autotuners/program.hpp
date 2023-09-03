@@ -2,13 +2,16 @@
 #include <iostream>
 #include <memory>
 #include <sstream>
+#include <tuple>
+#include <utility>
 #include <type_traits>
 
 #include "noarr/structures_extended.hpp"
 #include "noarr/structures/extra/traverser.hpp"
 #include "noarr/structures/interop/bag.hpp"
-#include "noarr/structures/extra/metamacros.hpp"
-#include "noarr/structures/extra/metastructures.hpp"
+
+#include "noarr/structures/tuning/macros.hpp"
+#include "noarr/structures/tuning/tuning.hpp"
 
 #ifndef SPECIFIC_TUNING_BEGIN
 

@@ -1,6 +1,7 @@
-#ifndef NOARR_STRUCTURES_METAFORMATTER_HPP
-#define NOARR_STRUCTURES_METAFORMATTER_HPP
+#ifndef NOARR_STRUCTURES_TUNING_FORMATTER_HPP
+#define NOARR_STRUCTURES_TUNING_FORMATTER_HPP
 
+#include <cstddef>
 #include <cstdint>
 #include <concepts>
 
@@ -8,8 +9,7 @@
 
 namespace noarr::tuning {
 
-// TODO: preferred category? distribution? names?
-//   OpenTuner calls it a switch
+// TODO: distribution?
 struct category_parameter {
 	constexpr category_parameter(std::size_t num) noexcept : num_(num) {}
 
@@ -19,7 +19,7 @@ struct category_parameter {
 template<class T>
 struct range_parameter {
 	constexpr range_parameter(T max) noexcept : min_(0), max_(max), step_((T)1) {}
-	constexpr range_parameter(T min, T max, T step = (T)1) noexcept : min_(min), max_(max) {}
+	constexpr range_parameter(T min, T max, T step = (T)1) noexcept : min_(min), max_(max), step_(step) {}
 
 	T min_;
 	T max_;
@@ -66,15 +66,17 @@ concept IsTunerFormatter = requires(T t) {
 	{ t.format("name", category_parameter(0)) };
 	{ t.format("name", multiple_choice_parameter()) }; // TODO: think about this
 	{ t.format("name", permutation_parameter(0)) };
+	{ t.format("name", range_parameter<std::size_t>(0, 0, 0)) };
 };
 
 template<class T>
 concept IsConstrainedTunerFormatter = IsTunerFormatter<T> && requires(T t) {
 	{ t.format("name", category_parameter(0), predicate_parameter([](auto &&) { return true; })) };
-	{ t.format("name", multiple_choice_parameter(), predicate_parameter([](auto &&) { return true; })) };
+	{ t.format("name", multiple_choice_parameter(), predicate_parameter([](auto &&) { return true; })) }; // TODO: think about this
 	{ t.format("name", permutation_parameter(0), predicate_parameter([](auto &&) { return true; })) };
+	{ t.format("name", range_parameter<std::size_t>(0, 0, 0), predicate_parameter([](auto &&) { return true; })) };
 };
 
 } // namespace noarr::tuning
 
-#endif // NOARR_STRUCTURES_METAFORMATTER_HPP
+#endif // NOARR_STRUCTURES_TUNING_FORMATTER_HPP

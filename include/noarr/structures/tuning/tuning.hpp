@@ -1,12 +1,12 @@
-#ifndef NOARR_STRUCTURES_METASTRUCTURES_HPP
-#define NOARR_STRUCTURES_METASTRUCTURES_HPP
+#ifndef NOARR_STRUCTURES_TUNING_HPP
+#define NOARR_STRUCTURES_TUNING_HPP
 
 #include <cstdlib>
 #include <type_traits>
 #include <utility>
 
 #include "../base/structs_common.hpp"
-#include "../extra/metaformatter.hpp"
+#include "../tuning/formatter.hpp"
 
 namespace noarr::tuning {
 
@@ -41,11 +41,9 @@ inline constexpr plain_code_t plain_code;
 struct value_t {};
 inline constexpr value_t value;
 
-// TODO: implement
 struct permutation_t {};
 inline constexpr permutation_t permutation;
 
-// TODO: implement
 struct range_t {};
 inline constexpr range_t range;
 
@@ -74,15 +72,23 @@ interpret(placeholder<Name>, range_t, T &&, T &&, T &&) -> interpret<Name, range
 
 #ifdef NOARR_TUNE
 
-template<class Name> requires (!IsDefined<Name>)
-struct interpret<Name, begin_t> : contain<> {
+template<class Name, class ...Args> requires (!IsDefined<Name>)
+struct interpret<Name, begin_t, Args...> : contain<Args...> {
 	using name = Name;
 
-	constexpr interpret(placeholder<Name>, begin_t) noexcept : contain<>() {};
+	template<class ...Ts>
+	constexpr interpret(placeholder<Name>, begin_t, Ts &&...args) noexcept
+		: contain<Args...>(std::forward<Ts>(args)...) {}
 
-	template<class TunerFormatter, class ...Args>
-	constexpr decltype(auto) generate(TunerFormatter &formatter, const Args &...args) const {
-		return formatter.header(args...);
+	template<class TunerFormatter>
+	constexpr void generate(TunerFormatter &formatter) const {
+		generate(formatter, std::index_sequence_for<Args...>());
+	}
+
+private:
+	template<class TunerFormatter, std::size_t ...Is>
+	constexpr void generate(TunerFormatter &formatter, std::index_sequence<Is...>) const {
+		formatter.header(this->template get<Is>()...);
 	}
 };
 
@@ -91,9 +97,8 @@ struct interpret<Name, end_t, Args...> : contain<Args...> {
 	using name = Name;
 
 	template<class ...Ts>
-	constexpr interpret(placeholder<Name>, end_t, Ts &&...args) noexcept : contain<Args...>(std::forward<Ts>(args)...) {
-		
-	};
+	constexpr interpret(placeholder<Name>, end_t, Ts &&...args) noexcept
+		: contain<Args...>(std::forward<Ts>(args)...) {}
 
 	template<class TunerFormatter>
 	constexpr void generate(TunerFormatter &formatter) const {
@@ -202,11 +207,12 @@ private:
 
 #else
 
-template<class Name> requires (!IsDefined<Name>)
-struct interpret<Name, begin_t> : contain<> {
+template<class Name, class ...Args> requires (!IsDefined<Name>)
+struct interpret<Name, begin_t, Args...> : contain<> {
 	using name = Name;
 
-	constexpr interpret(placeholder<Name>, begin_t) noexcept : contain<>() {}
+	template<class ...Ts>
+	constexpr interpret(placeholder<Name>, begin_t, Ts &&...) noexcept : contain<>() {}
 
 	template<class ...Ts>
 	constexpr void generate(Ts &&...) const noexcept {}
@@ -412,4 +418,4 @@ definition_t(Formatter &, Parameter &) -> definition_t<Formatter, Parameter, voi
 
 } // namespace noarr::tuning
 
-#endif // NOARR_STRUCTURES_METASTRUCTURES_HPP
+#endif // NOARR_STRUCTURES_TUNING_HPP

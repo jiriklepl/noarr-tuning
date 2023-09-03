@@ -3,20 +3,20 @@
 
 #include <cstring>
 
-#include <any>
 #include <chrono>
 #include <memory>
+#include <ostream>
+#include <stdexcept>
 #include <string>
-#include <type_traits>
-#include <map>
+#include <utility>
 
 #include <atf.hpp>
 
 #include "noarr/structures_extended.hpp"
-#include "noarr/structures/extra/metabuilders.hpp"
-#include "noarr/structures/extra/metamacros.hpp"
-#include "noarr/structures/extra/metastructures.hpp"
-#include "noarr/structures/extra/extraformatters.hpp"
+#include "noarr/structures/tuning/builders.hpp"
+#include "noarr/structures/tuning/extraformatters.hpp"
+#include "noarr/structures/tuning/macros.hpp"
+#include "noarr/structures/tuning/tuning.hpp"
 
 #define ATF_GET_TP(name) (&*NOARR_PARAMETER_DEFINITION(name))
 
@@ -69,12 +69,14 @@ struct atf_formatter {
 	}
 
 	// TODO
+	[[noreturn]]
 	void format(const char *, const noarr::tuning::multiple_choice_parameter &) const {
-		throw std::exception();
+		throw std::runtime_error("Multiple choice parameters are not supported");
 	}
 
+	[[noreturn]]
 	void format(const char *, const noarr::tuning::multiple_choice_parameter &, auto &&) const {
-		throw std::exception();
+		throw std::runtime_error("Multiple choice parameters are not supported");
 	}
 
 	template<class T>
