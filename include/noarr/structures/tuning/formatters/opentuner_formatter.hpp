@@ -1,5 +1,5 @@
-#ifndef OPENTUNER_TEST_TEST_HPP
-#define OPENTUNER_TEST_TEST_HPP
+#ifndef NOARR_STRUCTURES_TUNING_OPENTUNER_FORMATTER_HPP
+#define NOARR_STRUCTURES_TUNING_OPENTUNER_FORMATTER_HPP
 
 #include <exception>
 #include <memory>
@@ -10,16 +10,15 @@
 #include "noarr/structures_extended.hpp"
 
 #include "noarr/structures/tuning/builders.hpp"
-#include "noarr/structures/tuning/extraformatters.hpp"
+#include "noarr/structures/tuning/formatters/common.hpp"
 #include "noarr/structures/tuning/macros.hpp"
 #include "noarr/structures/tuning/tuning.hpp"
 
-// TODO: name
-struct opentuner_ss_formatter {
-	std::size_t indent_level_;
-	std::ostream &out_;
+namespace noarr::tuning {
 
-	opentuner_ss_formatter(std::ostream &out, std::size_t indent_level = 0)
+class opentuner_manipulator_formatter {
+public:
+	opentuner_manipulator_formatter(std::ostream &out, std::size_t indent_level = 0)
 		: indent_level_(indent_level)
 		, out_(out)
 	{}
@@ -36,47 +35,41 @@ struct opentuner_ss_formatter {
 		out_ << std::string(indent_level_ + 2, ' ') << "return manipulator" << std::endl;
 	}
 
-	// TODO
-	void format(const char *name, const noarr::tuning::category_parameter &par) const {
+	void format(const char *name, const category_parameter &par) const {
 		out_ << std::string(indent_level_ + 2, ' ')  << "manipulator.add_parameter("
 			<< "SwitchParameter('" << name << "', " << par.num_ << "))" << std::endl;
 	}
 
 	// TODO
 	[[noreturn]]
-	void format(const char *, const noarr::tuning::multiple_choice_parameter &) const {
+	void format(const char *, const multiple_choice_parameter &) const {
 		throw std::runtime_error("Multiple choice parameters are not supported");
 	}
 
-	// TODO
-	void format(const char *name, const noarr::tuning::permutation_parameter &par) const {
+	void format(const char *name, const permutation_parameter &par) const {
 		out_ << std::string(indent_level_ + 2, ' ')  << "manipulator.add_parameter("
 			<< "PermutationParameter('" << name << "', range(" << par.num_ << ")))" << std::endl;
 	}
 
 	template<class T>
-	void format(const char *name, const noarr::tuning::range_parameter<T> &par) const {
+	void format(const char *name, const range_parameter<T> &par) const {
 		if (par.step_ != 1)
 			throw std::runtime_error("OpenTuner does not support step in range parameters");
 
 		out_ << std::string(indent_level_ + 2, ' ')  << "manipulator.add_parameter("
 			<< "IntegerParameter('" << name << "', " << par.min_ << ", " << par.max_ << "))" << std::endl;
 	}
+
+private:
+	std::size_t indent_level_;
+	std::ostream &out_;
 };
 
-static_assert(noarr::tuning::IsTunerFormatter<opentuner_ss_formatter>);
+static_assert(IsTunerFormatter<opentuner_manipulator_formatter>);
 
-// TODO: name
-template<noarr::tuning::IsCompileCommandBuilder CompileCommandBuilder, noarr::tuning::IsRunCommandBuilder RunCommandBuilder>
-struct opentuner_run_formatter {
-	std::ostream &out_;
-
-	std::shared_ptr<CompileCommandBuilder> compile_command_builder_;
-	std::shared_ptr<RunCommandBuilder> run_command_builder_;
-	std::string measure_command_;
-
-	std::size_t indent_level_;
-
+template<IsCompileCommandBuilder CompileCommandBuilder, IsRunCommandBuilder RunCommandBuilder>
+class opentuner_run_formatter {
+public:
 	opentuner_run_formatter(std::ostream &out, std::shared_ptr<CompileCommandBuilder> compile_command_builder, std::shared_ptr<RunCommandBuilder> run_command_builder, std::string_view measure_command, std::size_t indent_level = 0)
 		: out_(out)
 
@@ -122,7 +115,7 @@ struct opentuner_run_formatter {
 				measure_command_ << std::endl;
 	}
 
-	void format(const char *name, const noarr::tuning::category_parameter &) {
+	void format(const char *name, const category_parameter &) {
 		using std::string_literals::operator""s;
 
 		compile_command_builder_->add_define(
@@ -130,11 +123,11 @@ struct opentuner_run_formatter {
 			"{config[\""s + name + "\"]}");
 	}
 
-	void format(const char *, const noarr::tuning::multiple_choice_parameter &) const {
+	void format(const char *, const multiple_choice_parameter &) const {
 		throw std::runtime_error("Multiple choice parameters are not supported");
 	}
 
-	void format(const char *name, const noarr::tuning::permutation_parameter &) {
+	void format(const char *name, const permutation_parameter &) {
 		using std::string_literals::operator""s;
 
 		compile_command_builder_->add_define(
@@ -143,25 +136,34 @@ struct opentuner_run_formatter {
 	}
 
 	template<class T>
-	void format(const char *name, const noarr::tuning::range_parameter<T> &) {
+	void format(const char *name, const range_parameter<T> &) {
 		using std::string_literals::operator""s;
 
 		compile_command_builder_->add_define(
 			"NOARR_PARAMETER_VALUE_"s + name,
 			"{config[\""s + name + "\"]}");
 	}
+
+private:
+	std::ostream &out_;
+
+	std::shared_ptr<CompileCommandBuilder> compile_command_builder_;
+	std::shared_ptr<RunCommandBuilder> run_command_builder_;
+	std::string measure_command_;
+
+	std::size_t indent_level_;
 };
 
 
-template<noarr::tuning::IsCompileCommandBuilder CompileCommandBuilder, noarr::tuning::IsRunCommandBuilder RunCommandBuilder>
-class opentuner_formatter : public noarr::tuning::combined_formatter<noarr::tuning::lazy_formatter<opentuner_ss_formatter>, noarr::tuning::lazy_formatter<opentuner_run_formatter<CompileCommandBuilder, RunCommandBuilder>>> {
-	using base = noarr::tuning::combined_formatter<noarr::tuning::lazy_formatter<opentuner_ss_formatter>, noarr::tuning::lazy_formatter<opentuner_run_formatter<CompileCommandBuilder, RunCommandBuilder>>>;
+template<IsCompileCommandBuilder CompileCommandBuilder, IsRunCommandBuilder RunCommandBuilder>
+class opentuner_formatter : public combined_formatter<lazy_formatter<opentuner_manipulator_formatter>, lazy_formatter<opentuner_run_formatter<CompileCommandBuilder, RunCommandBuilder>>> {
+	using base = combined_formatter<lazy_formatter<opentuner_manipulator_formatter>, lazy_formatter<opentuner_run_formatter<CompileCommandBuilder, RunCommandBuilder>>>;
 
 public:
 	opentuner_formatter(std::ostream &out, std::shared_ptr<CompileCommandBuilder> compile_command_builder, std::shared_ptr<RunCommandBuilder> run_command_builder, const char *measure_command)
-		: noarr::tuning::combined_formatter<noarr::tuning::lazy_formatter<opentuner_ss_formatter>, noarr::tuning::lazy_formatter<opentuner_run_formatter<CompileCommandBuilder, RunCommandBuilder>>>{
-		std::make_unique<noarr::tuning::lazy_formatter<opentuner_ss_formatter>>(std::make_unique<opentuner_ss_formatter>(out, 2)),
-		std::make_unique<noarr::tuning::lazy_formatter<opentuner_run_formatter<CompileCommandBuilder, RunCommandBuilder>>>(std::make_unique<opentuner_run_formatter<CompileCommandBuilder, RunCommandBuilder>>(out, compile_command_builder, run_command_builder, measure_command, 2))},
+		: combined_formatter<lazy_formatter<opentuner_manipulator_formatter>, lazy_formatter<opentuner_run_formatter<CompileCommandBuilder, RunCommandBuilder>>>{
+		std::make_unique<lazy_formatter<opentuner_manipulator_formatter>>(std::make_unique<opentuner_manipulator_formatter>(out, 2)),
+		std::make_unique<lazy_formatter<opentuner_run_formatter<CompileCommandBuilder, RunCommandBuilder>>>(std::make_unique<opentuner_run_formatter<CompileCommandBuilder, RunCommandBuilder>>(out, compile_command_builder, run_command_builder, measure_command, 2))},
 		out_(out)
 	{}
 
@@ -195,5 +197,7 @@ class ApplicationTuner(MeasurementInterface):
 private:
 	std::ostream &out_;
 };
+
+} // namespace noarr::tuning
 
 #endif

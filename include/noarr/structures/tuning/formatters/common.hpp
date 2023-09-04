@@ -1,11 +1,11 @@
-#ifndef NOARR_STRUCTURES_TUNING_EXTRAFORMATTERS_HPP
-#define NOARR_STRUCTURES_TUNING_EXTRAFORMATTERS_HPP
+#ifndef NOARR_STRUCTURES_TUNING_FORMATTERS_COMMON_HPP
+#define NOARR_STRUCTURES_TUNING_FORMATTERS_COMMON_HPP
 
 #include <memory>
 #include <utility>
 #include <vector>
 
-#include "../tuning/formatter.hpp"
+#include "../../tuning/formatter.hpp"
 
 namespace noarr::tuning {
 
@@ -113,4 +113,4 @@ private:
 
 } // namespace noarr::tuning
 
-#endif // NOARR_STRUCTURES_TUNING_EXTRAFORMATTERS_HPP
+#endif // NOARR_STRUCTURES_TUNING_FORMATTERS_COMMON_HPP

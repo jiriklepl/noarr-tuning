@@ -1,5 +1,5 @@
-#ifndef OPTUNA_TEST_TEST_HPP
-#define OPTUNA_TEST_TEST_HPP
+#ifndef NOARR_STRUCTURES_TUNING_OPTUNA_FORMATTER_HPP
+#define NOARR_STRUCTURES_TUNING_OPTUNA_FORMATTER_HPP
 
 #include <memory>
 #include <ostream>
@@ -13,7 +13,9 @@
 #include "noarr/structures/tuning/macros.hpp"
 #include "noarr/structures/tuning/tuning.hpp"
 
-template<noarr::tuning::IsCompileCommandBuilder CompileCommandBuilder, noarr::tuning::IsRunCommandBuilder RunCommandBuilder>
+namespace noarr::tuning {
+
+template<IsCompileCommandBuilder CompileCommandBuilder, IsRunCommandBuilder RunCommandBuilder>
 struct optuna_formatter {
 	std::ostream &out_;
 
@@ -70,7 +72,7 @@ study.optimize(application_tuner, n_trials=100)
 )";
 	}
 
-	void format(std::string_view name, const noarr::tuning::category_parameter &par) {
+	void format(std::string_view name, const category_parameter &par) {
 		using namespace std::string_literals;
 
 		std::string name_ = "NOARR_PARAMETER_VALUE_"s;
@@ -84,11 +86,11 @@ study.optimize(application_tuner, n_trials=100)
 
 	// TODO
 	[[noreturn]]
-	void format(const noarr::tuning::multiple_choice_parameter &) const {
+	void format(const multiple_choice_parameter &) const {
 		throw std::runtime_error("Multiple choice parameters are not supported");
 	}
 
-	void format(std::string_view name, const noarr::tuning::permutation_parameter &par) {
+	void format(std::string_view name, const permutation_parameter &par) {
 		using namespace std::string_literals;
 
 		std::string name_ = "NOARR_PARAMETER_VALUE_"s;
@@ -101,7 +103,7 @@ study.optimize(application_tuner, n_trials=100)
 	}
 
 	template<class T>
-	void format(std::string_view name, const noarr::tuning::range_parameter<T> &par) {
+	void format(std::string_view name, const range_parameter<T> &par) {
 		using namespace std::string_literals;
 
 		std::string name_ = "NOARR_PARAMETER_VALUE_"s;
@@ -113,5 +115,7 @@ study.optimize(application_tuner, n_trials=100)
 		out_ << "  " << name_ << " = trial.suggest_int('" << name_ << "', " << par.min_ << ", " << par.max_ << ", " << par.step_ << ")" << std::endl;
 	}
 };
+
+} // namespace noarr::tuning
 
 #endif

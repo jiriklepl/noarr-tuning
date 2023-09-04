@@ -1,9 +1,8 @@
-#ifndef ATF_TEST_TEST_HPP
-#define ATF_TEST_TEST_HPP
+#ifndef NOARR_STRUCTURES_TUNING_ATF_FORMATTER_HPP
+#define NOARR_STRUCTURES_TUNING_ATF_FORMATTER_HPP
 
 #include <cstring>
 
-#include <chrono>
 #include <memory>
 #include <ostream>
 #include <stdexcept>
@@ -13,20 +12,18 @@
 #include <atf.hpp>
 
 #include "noarr/structures_extended.hpp"
+
 #include "noarr/structures/tuning/builders.hpp"
-#include "noarr/structures/tuning/extraformatters.hpp"
 #include "noarr/structures/tuning/macros.hpp"
 #include "noarr/structures/tuning/tuning.hpp"
 
-#define ATF_GET_TP(name) (&*NOARR_PARAMETER_DEFINITION(name))
+#define NOARR_ATF_TP(name) (&*NOARR_PARAMETER_DEFINITION(name))
 
-template<noarr::tuning::IsCompileCommandBuilder CompileCommandBuilder, noarr::tuning::IsRunCommandBuilder RunCommandBuilder>
-struct atf_formatter {
-	std::ostream &out_;
+namespace noarr::tuning {
 
-	std::shared_ptr<CompileCommandBuilder> compile_command_builder_;
-	std::shared_ptr<RunCommandBuilder> run_command_builder_;
-
+template<IsCompileCommandBuilder CompileCommandBuilder, IsRunCommandBuilder RunCommandBuilder>
+class atf_formatter {
+public:
 	atf_formatter(std::ostream &out, std::shared_ptr<CompileCommandBuilder> compile_command_builder, std::shared_ptr<RunCommandBuilder> run_command_builder)
 		: out_(out)
 		, compile_command_builder_(compile_command_builder)
@@ -51,7 +48,7 @@ struct atf_formatter {
 			.tune(cost_function, atf::evaluations(10));
 	}
 
-	auto format(const char *name, const noarr::tuning::category_parameter &par) {
+	auto format(const char *name, const category_parameter &par) {
 		using namespace std::string_literals;
 
 		compile_command_builder_->add_define("NOARR_PARAMETER_VALUE_"s + name, "$"s + name);
@@ -60,7 +57,7 @@ struct atf_formatter {
 	}
 
 	template<class Constraint>
-	auto format(const char *name, const noarr::tuning::category_parameter &par, Constraint &&constraint) {
+	auto format(const char *name, const category_parameter &par, Constraint &&constraint) {
 		using namespace std::string_literals;
 
 		compile_command_builder_->add_define("NOARR_PARAMETER_VALUE_"s + name, "$"s + name);
@@ -70,17 +67,17 @@ struct atf_formatter {
 
 	// TODO
 	[[noreturn]]
-	void format(const char *, const noarr::tuning::multiple_choice_parameter &) const {
+	void format(const char *, const multiple_choice_parameter &) const {
 		throw std::runtime_error("Multiple choice parameters are not supported");
 	}
 
 	[[noreturn]]
-	void format(const char *, const noarr::tuning::multiple_choice_parameter &, auto &&) const {
+	void format(const char *, const multiple_choice_parameter &, auto &&) const {
 		throw std::runtime_error("Multiple choice parameters are not supported");
 	}
 
 	template<class T>
-	auto format(const char *name, const noarr::tuning::range_parameter<T> &par) {
+	auto format(const char *name, const range_parameter<T> &par) {
 		using namespace std::string_literals;
 
 		compile_command_builder_->add_define("NOARR_PARAMETER_VALUE_"s + name, "$"s + name);
@@ -89,7 +86,7 @@ struct atf_formatter {
 	}
 
 	template<class T, class Constraint>
-	auto format(const char *name, const noarr::tuning::range_parameter<T> &par, Constraint &&constraint) {
+	auto format(const char *name, const range_parameter<T> &par, Constraint &&constraint) {
 		using namespace std::string_literals;
 
 		compile_command_builder_->add_define("NOARR_PARAMETER_VALUE_"s + name, "$"s + name);
@@ -97,7 +94,7 @@ struct atf_formatter {
 		return atf::tuning_parameter(name, atf::interval(par.min_, par.max_ - (T)1, par.step_), std::forward<Constraint>(constraint));
 	}
 
-	auto format(const char *name, const noarr::tuning::permutation_parameter &par) {
+	auto format(const char *name, const permutation_parameter &par) {
 		using namespace std::string_literals;
 
 		compile_command_builder_->add_define("NOARR_PARAMETER_VALUE_"s + name, "$"s + name);
@@ -106,13 +103,21 @@ struct atf_formatter {
 	}
 
 	template<class Constraint>
-	auto format(const char *name, const noarr::tuning::permutation_parameter &par, Constraint &&constraint) {
+	auto format(const char *name, const permutation_parameter &par, Constraint &&constraint) {
 		using namespace std::string_literals;
 
 		compile_command_builder_->add_define("NOARR_PARAMETER_VALUE_"s + name, "$"s + name);
 
 		return atf::tuning_parameter(name, atf::interval((std::size_t)0, par.num_ - 1), std::forward<Constraint>(constraint));
 	}
+
+private:
+	std::ostream &out_;
+
+	std::shared_ptr<CompileCommandBuilder> compile_command_builder_;
+	std::shared_ptr<RunCommandBuilder> run_command_builder_;
 };
+
+} // namespace noarr::tuning
 
 #endif
