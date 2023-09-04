@@ -123,26 +123,26 @@ template<class Union, class Order, class Ending>
 struct planner_t;
 
 template<class... Structs, class Order, class Ending>
-struct planner_t<union_t<Structs...>, Order, Ending> : contain<union_t<Structs...>, Order> {
-	Ending ending_;
-
+struct planner_t<union_t<Structs...>, Order, Ending> : flexible_contain<union_t<Structs...>, Order, Ending> {
 	using union_struct = union_t<Structs...>;
-	using base = contain<union_struct, Order>;
+	using base = flexible_contain<union_struct, Order, Ending>;
 	using base::base;
 
 	static constexpr std::size_t num_structs = sizeof...(Structs);
 
+	template<class Union, class Order_, class Ending_>
 	[[nodiscard]]
-	constexpr planner_t(union_struct union_struct, Order order, Ending ending) : base(union_struct, order), ending_(ending) {}
+	constexpr planner_t(Union &&union_struct, Order_ &&order, Ending_ &&ending)
+		: base(std::forward<Union>(union_struct), std::forward<Order_>(order), std::forward<Ending_>(ending)) {}
 
 	[[nodiscard]]
-	constexpr union_struct get_union() const noexcept { return base::template get<0>(); }
+	constexpr union_struct get_union() const noexcept { return this->template get<0>(); }
 
 	[[nodiscard]]
-	constexpr Order get_order() const noexcept { return base::template get<1>(); }
+	constexpr Order get_order() const noexcept { return this->template get<1>(); }
 
 	[[nodiscard]]
-	constexpr Ending get_ending() const noexcept { return ending_; }
+	constexpr Ending get_ending() const noexcept { return this->template get<2>(); }
 
 	template <std::size_t Idx> requires (Idx < num_structs)
 	[[nodiscard]]
@@ -231,6 +231,9 @@ private:
 		}
 	}
 };
+
+template<class Union, class Order, class Ending>
+planner_t(Union &&, Order &&, Ending &&) -> planner_t<std::remove_cvref_t<Union>, std::remove_cvref_t<Order>, std::remove_cvref_t<Ending>>;
 
 template<class... Ts>
 [[nodiscard("returns a new planner")]]
