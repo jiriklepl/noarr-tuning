@@ -19,13 +19,13 @@
 
 #define NOARR_TUNE_PAR(parameter_name, ...) \
 	struct NOARR_PARAMETER(parameter_name) { static constexpr const char *name= #parameter_name; static constexpr auto value = noarr::contain(NOARR_PARAMETER(VALUE_ ## parameter_name)); }; \
-	decltype(::noarr::tuning::interpret(::noarr::tuning::placeholder<NOARR_PARAMETER(parameter_name)>(), __VA_ARGS__)) \
-	parameter_name{::noarr::tuning::placeholder<NOARR_PARAMETER(parameter_name)>(), __VA_ARGS__} \
+	decltype(::noarr::tuning::interpret(::noarr::tuning::name_holder<NOARR_PARAMETER(parameter_name)>(), __VA_ARGS__)) \
+	parameter_name{::noarr::tuning::name_holder<NOARR_PARAMETER(parameter_name)>(), __VA_ARGS__} \
 
 #define NOARR_TUNE_CONSTRAINED_PAR(parameter_name, constraint, ...) \
 	struct NOARR_PARAMETER(parameter_name) { static constexpr const char *name= #parameter_name; static constexpr auto value = noarr::contain(NOARR_PARAMETER(VALUE_ ## parameter_name)); }; \
-	decltype(::noarr::tuning::interpret(::noarr::tuning::placeholder<NOARR_PARAMETER(parameter_name)>(), __VA_ARGS__)) \
-	parameter_name{::noarr::tuning::placeholder<NOARR_PARAMETER(parameter_name)>(), __VA_ARGS__} \
+	decltype(::noarr::tuning::interpret(::noarr::tuning::name_holder<NOARR_PARAMETER(parameter_name)>(), __VA_ARGS__)) \
+	parameter_name{::noarr::tuning::name_holder<NOARR_PARAMETER(parameter_name)>(), __VA_ARGS__} \
 
 #define NOARR_TUNE_END(...) \
 	static_assert(true, "NOARR_TUNE_END() must be called at the end of the tuning block.")
@@ -34,15 +34,15 @@
 
 #define NOARR_TUNE_PAR(parameter_name, ...) \
 	struct NOARR_PARAMETER(parameter_name) { static constexpr const char *name= #parameter_name; }; \
-	decltype(::noarr::tuning::interpret(::noarr::tuning::placeholder<NOARR_PARAMETER(parameter_name)>(), __VA_ARGS__)) \
-	parameter_name{::noarr::tuning::placeholder<NOARR_PARAMETER(parameter_name)>(), __VA_ARGS__}; \
+	decltype(::noarr::tuning::interpret(::noarr::tuning::name_holder<NOARR_PARAMETER(parameter_name)>(), __VA_ARGS__)) \
+	parameter_name{::noarr::tuning::name_holder<NOARR_PARAMETER(parameter_name)>(), __VA_ARGS__}; \
 	decltype(::noarr::tuning::definition_t(formatter, parameter_name)) \
 	NOARR_PARAMETER_DEFINITION(parameter_name){formatter, parameter_name}
 
 #define NOARR_TUNE_CONSTRAINED_PAR(parameter_name, constraint, ...) \
 	struct NOARR_PARAMETER(parameter_name) { static constexpr const char *name= #parameter_name; }; \
-	decltype(::noarr::tuning::interpret(::noarr::tuning::placeholder<NOARR_PARAMETER(parameter_name)>(), __VA_ARGS__)) \
-	parameter_name{::noarr::tuning::placeholder<NOARR_PARAMETER(parameter_name)>(), __VA_ARGS__}; \
+	decltype(::noarr::tuning::interpret(::noarr::tuning::name_holder<NOARR_PARAMETER(parameter_name)>(), __VA_ARGS__)) \
+	parameter_name{::noarr::tuning::name_holder<NOARR_PARAMETER(parameter_name)>(), __VA_ARGS__}; \
 	decltype(::noarr::tuning::definition_t(formatter, parameter_name, constraint)) \
 	NOARR_PARAMETER_DEFINITION(parameter_name){formatter, parameter_name, constraint}
 

@@ -11,7 +11,7 @@
 namespace noarr::tuning {
 
 template<class ...>
-struct placeholder {};
+struct name_holder {};
 
 struct begin_t {};
 inline constexpr begin_t begin;
@@ -59,16 +59,16 @@ template<class Name, class Parameter, class ...Things>
 struct interpret;
 
 template<class Name, class Parameter, class ...Things>
-interpret(placeholder<Name>, Parameter, Things&&...) -> interpret<Name, Parameter, Things...>;
+interpret(name_holder<Name>, Parameter, Things&&...) -> interpret<Name, Parameter, Things...>;
 
 template<class Name, class T> 
-interpret(placeholder<Name>, range_t, T &&) -> interpret<Name, range_t, std::remove_cvref_t<T>, std::remove_cvref_t<T>, std::remove_cvref_t<T>>;
+interpret(name_holder<Name>, range_t, T &&) -> interpret<Name, range_t, std::remove_cvref_t<T>, std::remove_cvref_t<T>, std::remove_cvref_t<T>>;
 
 template<class Name, class T>
-interpret(placeholder<Name>, range_t, T &&, T &&) -> interpret<Name, range_t, std::remove_cvref_t<T>, std::remove_cvref_t<T>, std::remove_cvref_t<T>>;
+interpret(name_holder<Name>, range_t, T &&, T &&) -> interpret<Name, range_t, std::remove_cvref_t<T>, std::remove_cvref_t<T>, std::remove_cvref_t<T>>;
 
 template<class Name, class T>
-interpret(placeholder<Name>, range_t, T &&, T &&, T &&) -> interpret<Name, range_t, std::remove_cvref_t<T>, std::remove_cvref_t<T>, std::remove_cvref_t<T>>;
+interpret(name_holder<Name>, range_t, T &&, T &&, T &&) -> interpret<Name, range_t, std::remove_cvref_t<T>, std::remove_cvref_t<T>, std::remove_cvref_t<T>>;
 
 #ifdef NOARR_TUNE
 
@@ -77,7 +77,7 @@ struct interpret<Name, begin_t, Args...> : contain<Args...> {
 	using name = Name;
 
 	template<class ...Ts>
-	constexpr interpret(placeholder<Name>, begin_t, Ts &&...args) noexcept
+	constexpr interpret(name_holder<Name>, begin_t, Ts &&...args) noexcept
 		: contain<Args...>(std::forward<Ts>(args)...) {}
 
 	template<class TunerFormatter>
@@ -97,7 +97,7 @@ struct interpret<Name, end_t, Args...> : contain<Args...> {
 	using name = Name;
 
 	template<class ...Ts>
-	constexpr interpret(placeholder<Name>, end_t, Ts &&...args) noexcept
+	constexpr interpret(name_holder<Name>, end_t, Ts &&...args) noexcept
 		: contain<Args...>(std::forward<Ts>(args)...) {}
 
 	template<class TunerFormatter>
@@ -118,7 +118,7 @@ struct interpret<Name, choice_t, Choices...> : contain<Choices...>  {
 	using name = Name;
 
 	template<class ...Ts>
-	constexpr interpret(placeholder<Name>, choice_t, Ts &&...choices)
+	constexpr interpret(name_holder<Name>, choice_t, Ts &&...choices)
 		: contain<Choices...>(std::forward<Ts>(choices)...) {}
 
 	constexpr decltype(auto) operator*() const noexcept {
@@ -149,11 +149,11 @@ struct interpret<Name, range_t, Range, Range, Range> : contain<Range, Range, Ran
 	using name = Name;
 
 	template<class T>
-	constexpr interpret(placeholder<Name>, range_t, T &&end)
+	constexpr interpret(name_holder<Name>, range_t, T &&end)
 		: contain<Range, Range, Range>(0, std::forward<T>(end), 1) {}
 
 	template<class Start, class End, class Step>
-	constexpr interpret(placeholder<Name>, range_t, Start &&begin, End &&end, Step &&step = (Range)1)
+	constexpr interpret(name_holder<Name>, range_t, Start &&begin, End &&end, Step &&step = (Range)1)
 		: contain<Range, Range, Range>(std::forward<Start>(begin), std::forward<End>(end), std::forward<Step>(step)) {}
 
 	constexpr decltype(auto) operator*() const noexcept {
@@ -180,7 +180,7 @@ struct interpret<Name, permutation_t, Choices...> : contain<Choices...>  {
 	using name = Name;
 
 	template<class ...Ts>
-	constexpr interpret(placeholder<Name>, permutation_t, Ts &&...choices)
+	constexpr interpret(name_holder<Name>, permutation_t, Ts &&...choices)
 		: contain<Choices...>(std::forward<Ts>(choices)...) {}
 
 	constexpr const contain<Choices...> &operator*() const noexcept {
@@ -212,7 +212,7 @@ struct interpret<Name, begin_t, Args...> : contain<> {
 	using name = Name;
 
 	template<class ...Ts>
-	constexpr interpret(placeholder<Name>, begin_t, Ts &&...) noexcept : contain<>() {}
+	constexpr interpret(name_holder<Name>, begin_t, Ts &&...) noexcept : contain<>() {}
 
 	template<class ...Ts>
 	constexpr void generate(Ts &&...) const noexcept {}
@@ -223,7 +223,7 @@ struct interpret<Name, end_t, Args...> : contain<> {
 	using name = Name;
 
 	template<class ...Ts>
-	constexpr interpret(placeholder<Name>, end_t, Ts &&...) noexcept : contain<>() {}
+	constexpr interpret(name_holder<Name>, end_t, Ts &&...) noexcept : contain<>() {}
 
 	template<class ...Ts>
 	constexpr void generate(Ts &&...) const noexcept {}
@@ -234,7 +234,7 @@ struct interpret<Name, choice_t, Choice, Choices...> : contain<Choice> {
 	using name = Name;
 
 	template<class T, class ...Ts>
-	constexpr interpret(placeholder<Name>, choice_t, T &&choice, Ts &&...)
+	constexpr interpret(name_holder<Name>, choice_t, T &&choice, Ts &&...)
 		: contain<Choice>(std::forward<T>(choice)) {}
 
 	constexpr decltype(auto) operator*() const noexcept {
@@ -255,11 +255,11 @@ struct interpret<Name, range_t, Range, Range, Range> : contain<Range> {
 	using name = Name;
 
 	template<class T>
-	constexpr interpret(placeholder<Name>, range_t, T &&)
+	constexpr interpret(name_holder<Name>, range_t, T &&)
 		: contain<Range>(0) {}
 
 	template<class Start, class End, class Step>
-	constexpr interpret(placeholder<Name>, range_t, Start &&begin, End &&, Step && = (Range)1)
+	constexpr interpret(name_holder<Name>, range_t, Start &&begin, End &&, Step && = (Range)1)
 		: contain<Range>(std::forward<Start>(begin)) {}
 
 	constexpr decltype(auto) operator*() const noexcept {
@@ -279,7 +279,7 @@ struct interpret<Name, permutation_t, Choices...> : contain<Choices...>  {
 	using name = Name;
 
 	template<class ...Ts>
-	constexpr interpret(placeholder<Name>, permutation_t, Ts &&...choices)
+	constexpr interpret(name_holder<Name>, permutation_t, Ts &&...choices)
 		: contain<Choices...>(std::forward<Ts>(choices)...) {}
 
 	constexpr const contain<Choices...> &operator*() const noexcept {
@@ -301,7 +301,7 @@ struct interpret<Name, choice_t, Choices...> : contain<Choices...>  {
 	using name = Name;
 
 	template<class ...Ts>
-	constexpr interpret(placeholder<Name>, choice_t, Ts &&...choices)
+	constexpr interpret(name_holder<Name>, choice_t, Ts &&...choices)
 		: contain<Choices...>(std::forward<Ts>(choices)...) {}
 
 	constexpr decltype(auto) operator*() const noexcept {
@@ -321,11 +321,11 @@ struct interpret<Name, range_t, Range, Range, Range> {
 	using name = Name;
 
 	template<class T>
-	constexpr interpret(placeholder<Name>, range_t, T &&)
+	constexpr interpret(name_holder<Name>, range_t, T &&)
 	{}
 
 	template<class Start, class End, class Step>
-	constexpr interpret(placeholder<Name>, range_t, Start &&, End &&, Step && = (Range)1)
+	constexpr interpret(name_holder<Name>, range_t, Start &&, End &&, Step && = (Range)1)
 	{}
 
 	constexpr Range operator*() const noexcept {
@@ -345,7 +345,7 @@ struct interpret<Name, permutation_t, Choices...> : contain<Choices...>  {
 	using name = Name;
 
 	template<class ...Ts>
-	constexpr interpret(placeholder<Name>, permutation_t, Ts &&...choices)
+	constexpr interpret(name_holder<Name>, permutation_t, Ts &&...choices)
 		: contain<Choices...>(std::forward<Ts>(choices)...) {}
 
 	constexpr const contain<Choices...> &operator*() const noexcept {
