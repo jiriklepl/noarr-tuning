@@ -189,9 +189,13 @@ struct planner_t<union_t<Structs...>, Order, Ending> : flexible_contain<union_t<
 		return planner_t<union_struct, Order, planner_sections_t<signature, F, Ending>>(get_union(), get_order(), planner_sections_t<signature, F, Ending>(f, get_ending()));
 	}
 
-	constexpr void operator()() const noexcept requires (!std::same_as<Ending, planner_empty_t>) {
+	constexpr void execute() const noexcept requires (!std::same_as<Ending, planner_empty_t>) {
 		using dim_tree = sig_dim_tree<typename decltype(top_struct())::signature>;
 		for_each_impl(dim_tree(), empty_state);
+	}
+
+	constexpr void operator()() const noexcept requires (!std::same_as<Ending, planner_empty_t>) {
+		execute();
 	}
 
 	[[nodiscard("returns the state of the planner")]]
