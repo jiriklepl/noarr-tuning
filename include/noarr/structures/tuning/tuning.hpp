@@ -73,12 +73,12 @@ interpret(name_holder<Name>, range_t, T &&, T &&, T &&) -> interpret<Name, range
 #ifdef NOARR_TUNE
 
 template<class Name, class ...Args> requires (!IsDefined<Name>)
-struct interpret<Name, begin_t, Args...> : contain<Args...> {
+struct interpret<Name, begin_t, Args...> : flexible_contain<Args...> {
 	using name = Name;
 
 	template<class ...Ts>
 	constexpr interpret(name_holder<Name>, begin_t, Ts &&...args) noexcept
-		: contain<Args...>(std::forward<Ts>(args)...) {}
+		: flexible_contain<Args...>(std::forward<Ts>(args)...) {}
 
 	template<class TunerFormatter>
 	constexpr void generate(TunerFormatter &formatter) const {
@@ -93,12 +93,12 @@ private:
 };
 
 template<class Name, class ...Args> requires (!IsDefined<Name>)
-struct interpret<Name, end_t, Args...> : contain<Args...> {
+struct interpret<Name, end_t, Args...> : flexible_contain<Args...> {
 	using name = Name;
 
 	template<class ...Ts>
 	constexpr interpret(name_holder<Name>, end_t, Ts &&...args) noexcept
-		: contain<Args...>(std::forward<Ts>(args)...) {}
+		: flexible_contain<Args...>(std::forward<Ts>(args)...) {}
 
 	template<class TunerFormatter>
 	constexpr void generate(TunerFormatter &formatter) const {
@@ -114,12 +114,12 @@ private:
 };
 
 template<class Name, class ...Choices> requires (!IsDefined<Name>)
-struct interpret<Name, choice_t, Choices...> : contain<Choices...>  {
+struct interpret<Name, choice_t, Choices...> : flexible_contain<Choices...>  {
 	using name = Name;
 
 	template<class ...Ts>
 	constexpr interpret(name_holder<Name>, choice_t, Ts &&...choices)
-		: contain<Choices...>(std::forward<Ts>(choices)...) {}
+		: flexible_contain<Choices...>(std::forward<Ts>(choices)...) {}
 
 	constexpr decltype(auto) operator*() const noexcept {
 		return this->template get<0>();
@@ -145,16 +145,16 @@ private:
 
 // TODO: add version with constants
 template<class Name, class Range> requires (!IsDefined<Name>)
-struct interpret<Name, range_t, Range, Range, Range> : contain<Range, Range, Range> {
+struct interpret<Name, range_t, Range, Range, Range> : flexible_contain<Range, Range, Range> {
 	using name = Name;
 
 	template<class T>
 	constexpr interpret(name_holder<Name>, range_t, T &&end)
-		: contain<Range, Range, Range>(0, std::forward<T>(end), 1) {}
+		: flexible_contain<Range, Range, Range>(0, std::forward<T>(end), 1) {}
 
 	template<class Start, class End, class Step>
 	constexpr interpret(name_holder<Name>, range_t, Start &&begin, End &&end, Step &&step = (Range)1)
-		: contain<Range, Range, Range>(std::forward<Start>(begin), std::forward<End>(end), std::forward<Step>(step)) {}
+		: flexible_contain<Range, Range, Range>(std::forward<Start>(begin), std::forward<End>(end), std::forward<Step>(step)) {}
 
 	constexpr decltype(auto) operator*() const noexcept {
 		return this->template get<0>();
@@ -176,14 +176,14 @@ struct interpret<Name, range_t, Range, Range, Range> : contain<Range, Range, Ran
 };
 
 template<class Name, class ...Choices> requires (!IsDefined<Name>)
-struct interpret<Name, permutation_t, Choices...> : contain<Choices...>  {
+struct interpret<Name, permutation_t, Choices...> : flexible_contain<Choices...>  {
 	using name = Name;
 
 	template<class ...Ts>
 	constexpr interpret(name_holder<Name>, permutation_t, Ts &&...choices)
-		: contain<Choices...>(std::forward<Ts>(choices)...) {}
+		: flexible_contain<Choices...>(std::forward<Ts>(choices)...) {}
 
-	constexpr const contain<Choices...> &operator*() const noexcept {
+	constexpr const flexible_contain<Choices...> &operator*() const noexcept {
 		return *this;
 	}
 
@@ -208,34 +208,34 @@ private:
 #else
 
 template<class Name, class ...Args> requires (!IsDefined<Name>)
-struct interpret<Name, begin_t, Args...> : contain<> {
+struct interpret<Name, begin_t, Args...> : flexible_contain<> {
 	using name = Name;
 
 	template<class ...Ts>
-	constexpr interpret(name_holder<Name>, begin_t, Ts &&...) noexcept : contain<>() {}
+	constexpr interpret(name_holder<Name>, begin_t, Ts &&...) noexcept : flexible_contain<>() {}
 
 	template<class ...Ts>
 	constexpr void generate(Ts &&...) const noexcept {}
 };
 
 template<class Name, class ...Args> requires (!IsDefined<Name>)
-struct interpret<Name, end_t, Args...> : contain<> {
+struct interpret<Name, end_t, Args...> : flexible_contain<> {
 	using name = Name;
 
 	template<class ...Ts>
-	constexpr interpret(name_holder<Name>, end_t, Ts &&...) noexcept : contain<>() {}
+	constexpr interpret(name_holder<Name>, end_t, Ts &&...) noexcept : flexible_contain<>() {}
 
 	template<class ...Ts>
 	constexpr void generate(Ts &&...) const noexcept {}
 };
 
 template<class Name, class Choice, class ...Choices> requires (!IsDefined<Name>)
-struct interpret<Name, choice_t, Choice, Choices...> : contain<Choice> {
+struct interpret<Name, choice_t, Choice, Choices...> : flexible_contain<Choice> {
 	using name = Name;
 
 	template<class T, class ...Ts>
 	constexpr interpret(name_holder<Name>, choice_t, T &&choice, Ts &&...)
-		: contain<Choice>(std::forward<T>(choice)) {}
+		: flexible_contain<Choice>(std::forward<T>(choice)) {}
 
 	constexpr decltype(auto) operator*() const noexcept {
 		return this->get();
@@ -251,16 +251,16 @@ struct interpret<Name, choice_t, Choice, Choices...> : contain<Choice> {
 
 // TODO: add version with constants
 template<class Name, class Range> requires (!IsDefined<Name>)
-struct interpret<Name, range_t, Range, Range, Range> : contain<Range> {
+struct interpret<Name, range_t, Range, Range, Range> : flexible_contain<Range> {
 	using name = Name;
 
 	template<class T>
 	constexpr interpret(name_holder<Name>, range_t, T &&)
-		: contain<Range>(0) {}
+		: flexible_contain<Range>(0) {}
 
 	template<class Start, class End, class Step>
 	constexpr interpret(name_holder<Name>, range_t, Start &&begin, End &&, Step && = (Range)1)
-		: contain<Range>(std::forward<Start>(begin)) {}
+		: flexible_contain<Range>(std::forward<Start>(begin)) {}
 
 	constexpr decltype(auto) operator*() const noexcept {
 		return this->get();
@@ -275,14 +275,14 @@ struct interpret<Name, range_t, Range, Range, Range> : contain<Range> {
 };
 
 template<class Name, class ...Choices> requires (!IsDefined<Name>)
-struct interpret<Name, permutation_t, Choices...> : contain<Choices...>  {
+struct interpret<Name, permutation_t, Choices...> : flexible_contain<Choices...>  {
 	using name = Name;
 
 	template<class ...Ts>
 	constexpr interpret(name_holder<Name>, permutation_t, Ts &&...choices)
-		: contain<Choices...>(std::forward<Ts>(choices)...) {}
+		: flexible_contain<Choices...>(std::forward<Ts>(choices)...) {}
 
-	constexpr const contain<Choices...> &operator*() const noexcept {
+	constexpr const flexible_contain<Choices...> &operator*() const noexcept {
 		return *this;
 	}
 
@@ -297,12 +297,12 @@ struct interpret<Name, permutation_t, Choices...> : contain<Choices...>  {
 #endif // NOARR_TUNE
 
 template<class Name, class ...Choices> requires (IsDefined<Name>)
-struct interpret<Name, choice_t, Choices...> : contain<Choices...>  {
+struct interpret<Name, choice_t, Choices...> : flexible_contain<Choices...>  {
 	using name = Name;
 
 	template<class ...Ts>
 	constexpr interpret(name_holder<Name>, choice_t, Ts &&...choices)
-		: contain<Choices...>(std::forward<Ts>(choices)...) {}
+		: flexible_contain<Choices...>(std::forward<Ts>(choices)...) {}
 
 	constexpr decltype(auto) operator*() const noexcept {
 		return this->template get<Name::value.template get<0>()>();
@@ -341,14 +341,14 @@ struct interpret<Name, range_t, Range, Range, Range> {
 };
 
 template<class Name, class ...Choices> requires (IsDefined<Name>)
-struct interpret<Name, permutation_t, Choices...> : contain<Choices...>  {
+struct interpret<Name, permutation_t, Choices...> : flexible_contain<Choices...>  {
 	using name = Name;
 
 	template<class ...Ts>
 	constexpr interpret(name_holder<Name>, permutation_t, Ts &&...choices)
-		: contain<Choices...>(std::forward<Ts>(choices)...) {}
+		: flexible_contain<Choices...>(std::forward<Ts>(choices)...) {}
 
-	constexpr const contain<Choices...> &operator*() const noexcept {
+	constexpr const flexible_contain<Choices...> &operator*() const noexcept {
 		return *this;
 	}
 
