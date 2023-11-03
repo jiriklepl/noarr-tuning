@@ -136,13 +136,13 @@ struct planner_t<union_t<Structs...>, Order, Ending> : flexible_contain<union_t<
 		: base(std::forward<Union>(union_struct), std::forward<Order_>(order), std::forward<Ending_>(ending)) {}
 
 	[[nodiscard]]
-	constexpr union_struct get_union() const noexcept { return this->template get<0>(); }
+	constexpr union_struct get_union() const noexcept { return base::template get<0>(); }
 
 	[[nodiscard]]
-	constexpr Order get_order() const noexcept { return this->template get<1>(); }
+	constexpr Order get_order() const noexcept { return base::template get<1>(); }
 
 	[[nodiscard]]
-	constexpr Ending get_ending() const noexcept { return this->template get<2>(); }
+	constexpr Ending get_ending() const noexcept { return base::template get<2>(); }
 
 	template <std::size_t Idx> requires (Idx < num_structs)
 	[[nodiscard]]
@@ -241,7 +241,7 @@ planner_t(Union &&, Order &&, Ending &&) -> planner_t<std::remove_cvref_t<Union>
 
 template<class... Ts>
 [[nodiscard("returns a new planner")]]
-constexpr auto planner(const Ts &... s) noexcept 
+constexpr auto planner(const Ts &... s) noexcept
 { return planner(make_union(s.get_ref()...)); }
 
 template<class... Ts>
