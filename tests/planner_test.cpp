@@ -42,16 +42,16 @@ TEST_CASE("Planner trivial", "[planner]") {
 
 	int i = 0;
 
-	auto a_plan = planner(a).for_each_elem([&i](auto state, auto &&a) {
+	auto a_plan = planner(a).for_each_elem([](auto state, auto &&a) {
 		auto [x, y] = get_indices<'x', 'y'>(state);
 		a = x == y;
 	});
 
-	auto b_plan = planner(b).for_each_elem([&i](auto &&b) {
+	auto b_plan = planner(b).for_each_elem([](auto &&b) {
 		b = 1;
 	});
 
-	auto c_plan = planner(c).for_each_elem([&i](auto &&c) {
+	auto c_plan = planner(c).for_each_elem([](auto &&c) {
 		c = 0;
 	});
 
@@ -68,7 +68,7 @@ TEST_CASE("Planner trivial", "[planner]") {
 		inner();
 	}).order(reorder<'x', 'z', 'y'>());
 
-	auto c_check_plan = planner(c).for_each_elem([&i](auto &&c) {
+	auto c_check_plan = planner(c).for_each_elem([](auto &&c) {
 		REQUIRE(c == 1);
 	}).order(hoist<'z'>());
 
