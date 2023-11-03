@@ -65,6 +65,8 @@ def _():
 		for h in headers:
 			if not h.endswith('.hpp'):
 				continue
+			if h.find('/tuning/formatters/') != -1:
+				continue
 			f.write(f'#include <{h}>\n')
 		f.write(global_decls)
 		f.write('#define UNIQ_A(CTR) UNIQ_##CTR\n')
