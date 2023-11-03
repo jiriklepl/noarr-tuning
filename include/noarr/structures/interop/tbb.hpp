@@ -13,7 +13,7 @@ namespace noarr {
 // declared in traverser_iter.hpp
 template<IsDim auto Dim, class Struct, class Order>
 template<class Split>
-constexpr traverser_range_t<Dim, Struct, Order>::traverser_range_t(traverser_range_t &orig, Split) noexcept : base(orig), begin_idx(orig.begin_idx + (orig.end_idx - orig.begin_idx) / 2), end_idx(orig.end_idx) {
+constexpr traverser_range_t<Dim, Struct, Order>::traverser_range_t(traverser_range_t &orig, Split) noexcept : base((const base &)orig), begin_idx(orig.begin_idx + (orig.end_idx - orig.begin_idx) / 2), end_idx(orig.end_idx) {
 	static_assert(std::is_same_v<Split, tbb::split>, "Invalid constructor call");
 	orig.end_idx = begin_idx;
 }
