@@ -26,10 +26,10 @@ struct planner_empty_t {
 };
 
 template<class Sig, class F>
-struct planner_ending_elem_t {
+struct planner_ending_elem_t : flexible_contain<F> {
 	using signature = Sig;
 
-	constexpr planner_ending_elem_t(F f) : f_(f) {}
+	using flexible_contain<F>::flexible_contain;
 
 	template<class NewOrder>
 	constexpr auto order(NewOrder new_order) const noexcept {
@@ -38,7 +38,7 @@ struct planner_ending_elem_t {
 			static_assert(!always_false<signature>);
 		};
 
-		return planner_ending_elem_t<typename decltype(sigholder_t() ^ new_order)::signature, F>(f_);
+		return planner_ending_elem_t<typename decltype(sigholder_t() ^ new_order)::signature, F>(flexible_contain<F>::get());
 	}
 
 	template<class Planner>
@@ -51,24 +51,22 @@ private:
     constexpr void run(Planner planner, std::index_sequence<Idxs...>) const noexcept
 	requires (requires(F f) { f(planner.template get_struct<Idxs>()[planner.state()]...); })
 	{
-		f_(planner.template get_struct<Idxs>()[planner.state()]...);
+		flexible_contain<F>::get()(planner.template get_struct<Idxs>()[planner.state()]...);
 	}
 
 	template<class Planner, std::size_t... Idxs>
     constexpr void run(Planner planner, std::index_sequence<Idxs...>) const noexcept
 	requires (requires(F f) { f(planner.state(), planner.template get_struct<Idxs>()[planner.state()]...); })
 	{
-		f_(planner.state(), planner.template get_struct<Idxs>()[planner.state()]...);
+		flexible_contain<F>::get()(planner.state(), planner.template get_struct<Idxs>()[planner.state()]...);
 	}
-
-	F f_;
 };
 
 template<class Sig, class F>
-struct planner_ending_t {
+struct planner_ending_t : flexible_contain<F> {
 	using signature = Sig;
 
-	constexpr planner_ending_t(F f) : f_(f) {}
+	using flexible_contain<F>::flexible_contain;
 
 	template<class NewOrder>
 	constexpr auto order(NewOrder new_order) const noexcept {
@@ -77,25 +75,21 @@ struct planner_ending_t {
 			static_assert(!always_false<signature>);
 		};
 
-		return planner_ending_t<typename decltype(sigholder_t() ^ new_order)::signature, F>(f_);
+		return planner_ending_t<typename decltype(sigholder_t() ^ new_order)::signature, F>(flexible_contain<F>::get());
 	}
 
 	template<class Planner>
 	constexpr void operator()(Planner planner) const noexcept {
-		f_(planner.state());
+		flexible_contain<F>::get()(planner.state());
 	}
-
-private:
-	F f_;
 };
 
 template<class Sig, class F, class Next>
-struct planner_sections_t {
+struct planner_sections_t : flexible_contain<F, Next> {
 	using signature = Sig;
 	using next = Next;
 
-
-	constexpr planner_sections_t(F f, Next next) : f_(f), next_(next) {}
+	using flexible_contain<F, Next>::flexible_contain;
 
 	template<class NewOrder>
 	constexpr auto order(NewOrder new_order) const noexcept {
@@ -104,19 +98,15 @@ struct planner_sections_t {
 			static_assert(!always_false<signature>);
 		};
 
-		return planner_sections_t<typename decltype(sigholder_t() ^ new_order)::signature, F, decltype(next_.order(new_order))>(f_, next_.order(new_order));
+		return planner_sections_t<typename decltype(sigholder_t() ^ new_order)::signature, F, decltype(flexible_contain<F, Next>::template get<1>().order(new_order))>(flexible_contain<F, Next>::template get<0>(), flexible_contain<F, Next>::template get<1>().order(new_order));
 	}
 
-	constexpr const next &get_next() const noexcept { return next_; }
+	constexpr const next &get_next() const noexcept { return flexible_contain<F, Next>::template get<1>(); }
 
 	template<class Planner>
 	constexpr void operator()(Planner planner) const noexcept {
-		f_(planner.pop_ending());
+		flexible_contain<F, Next>::template get<0>()(planner.pop_ending());
 	}
-
-private:
-	F f_;
-	Next next_;
 };
 
 template<class Union, class Order, class Ending>
@@ -218,8 +208,7 @@ private:
 	constexpr void for_each_impl_dep(F, auto, std::index_sequence<>) const noexcept {}
 	template<class DimTree, IsState State>
 	constexpr void for_each_impl(DimTree, State state) const noexcept
-	requires (IsGroundSig<typename decltype(get_ending().order(fix(state_at<union_struct>(top_struct(), state))))::signature>
-		|| std::same_as<DimTree, dim_sequence<>>) {
+	requires (IsGroundSig<typename decltype(get_ending().order(fix(state_at<union_struct>(top_struct(), state))))::signature>) {
 		get_ending()(order(fix(state)));
 	}
 	template<auto Dim, class ...Branches, IsState State>
