@@ -13,10 +13,17 @@
 
 namespace noarr {
 
+template <class Ending>
+struct is_activated;
+
+template <class Ending>
+constexpr bool is_activated_v = is_activated<Ending>::value;
+
 struct planner_empty_t {
 	using signature = scalar_sig<void>;
 
 	template<class NewOrder>
+	[[nodiscard]]
 	constexpr auto order(NewOrder) const noexcept {
 		return *this;
 	}
@@ -25,13 +32,18 @@ struct planner_empty_t {
 	constexpr void operator()(Planner planner) = delete;
 };
 
+template<>
+struct is_activated<planner_empty_t> : std::false_type {};
+
 template<class Sig, class F>
 struct planner_ending_elem_t : flexible_contain<F> {
 	using signature = Sig;
+	static constexpr bool activated = IsGroundSig<signature>;
 
 	using flexible_contain<F>::flexible_contain;
 
 	template<class NewOrder>
+	[[nodiscard]]
 	constexpr auto order(NewOrder new_order) const noexcept {
 		struct sigholder_t {
 			using signature = Sig;
@@ -63,12 +75,17 @@ private:
 };
 
 template<class Sig, class F>
+struct is_activated<planner_ending_elem_t<Sig, F>> : std::integral_constant<bool, planner_ending_elem_t<Sig, F>::activated> {};
+
+template<class Sig, class F>
 struct planner_ending_t : flexible_contain<F> {
 	using signature = Sig;
+	static constexpr bool activated = IsGroundSig<signature>;
 
 	using flexible_contain<F>::flexible_contain;
 
 	template<class NewOrder>
+	[[nodiscard]]
 	constexpr auto order(NewOrder new_order) const noexcept {
 		struct sigholder_t {
 			using signature = Sig;
@@ -84,30 +101,49 @@ struct planner_ending_t : flexible_contain<F> {
 	}
 };
 
+template<class Sig, class F>
+struct is_activated<planner_ending_t<Sig, F>> : std::integral_constant<bool, planner_ending_t<Sig, F>::activated> {};
+
 template<class Sig, class F, class Next>
 struct planner_sections_t : flexible_contain<F, Next> {
 	using signature = Sig;
 	using next = Next;
+	static_assert(!(IsGroundSig<signature> && is_activated_v<Next>), "ambiguous activation of planner endings");
+	static constexpr bool activated = IsGroundSig<signature> || is_activated_v<Next>;
 
 	using flexible_contain<F, Next>::flexible_contain;
 
 	template<class NewOrder>
+	[[nodiscard]]
 	constexpr auto order(NewOrder new_order) const noexcept {
 		struct sigholder_t {
 			using signature = Sig;
 			static_assert(!always_false<signature>);
 		};
 
-		return planner_sections_t<typename decltype(sigholder_t() ^ new_order)::signature, F, decltype(flexible_contain<F, Next>::template get<1>().order(new_order))>(flexible_contain<F, Next>::template get<0>(), flexible_contain<F, Next>::template get<1>().order(new_order));
+		return planner_sections_t<typename decltype(sigholder_t() ^ new_order)::signature, F, std::remove_cvref_t<decltype(this->template get<1>().order(new_order))>>(flexible_contain<F, Next>::template get<0>(), flexible_contain<F, Next>::template get<1>().order(new_order));
 	}
 
-	constexpr const next &get_next() const noexcept { return flexible_contain<F, Next>::template get<1>(); }
+	template<class Order>
+	[[nodiscard]]
+	constexpr decltype(auto) get_next(Order order) const noexcept requires is_activated_v<decltype(this->order(order))> {
+		if constexpr(IsGroundSig<typename decltype(this->order(order))::signature>)
+			return flexible_contain<F, Next>::template get<1>();
+		else
+			return planner_sections_t<Sig, F, std::remove_cvref_t<decltype(this->template get<1>().get_next(order))>>(flexible_contain<F, Next>::template get<0>(),flexible_contain<F, Next>::template get<1>().get_next(order));
+	}
 
 	template<class Planner>
 	constexpr void operator()(Planner planner) const noexcept {
-		flexible_contain<F, Next>::template get<0>()(planner.pop_ending());
+		if constexpr (IsGroundSig<typename decltype(this->order(fix(state_at<typename Planner::union_struct>(planner.top_struct(), empty_state))))::signature>)
+			flexible_contain<F, Next>::template get<0>()(planner.pop_ending());
+		else
+			flexible_contain<F, Next>::template get<1>()(planner);
 	}
 };
+
+template<class Sig, class F, class Next>
+struct is_activated<planner_sections_t<Sig, F, Next>> : std::integral_constant<bool, planner_sections_t<Sig, F, Next>::activated> {};
 
 template<class Union, class Order, class Ending>
 struct planner_t;
@@ -161,7 +197,7 @@ struct planner_t<union_t<Structs...>, Order, Ending> : flexible_contain<union_t<
 
 	[[nodiscard("returns a new planner")]]
 	constexpr auto pop_ending() const noexcept {
-		return planner_t<union_struct, Order, typename Ending::next>(get_union(), get_order(), get_ending().get_next());
+		return planner_t<union_struct, Order, std::remove_cvref_t<decltype(get_ending().get_next(fix(state_at<union_struct>(top_struct(), empty_state))))>>(get_union(), get_order(), get_ending().get_next(fix(state_at<union_struct>(top_struct(), empty_state))));
 	}
 
 	// TODO: multiple for_sections
@@ -206,22 +242,25 @@ private:
 	}
 	template<auto Dim, class F>
 	constexpr void for_each_impl_dep(F, auto, std::index_sequence<>) const noexcept {}
-	template<class DimTree, IsState State>
-	constexpr void for_each_impl(DimTree, State state) const noexcept
-	requires (IsGroundSig<typename decltype(get_ending().order(fix(state_at<union_struct>(top_struct(), state))))::signature>) {
-		get_ending()(order(fix(state)));
-	}
 	template<auto Dim, class ...Branches, IsState State>
-	constexpr void for_each_impl(dim_tree<Dim, Branches...>, State state) const noexcept
-	requires (!IsGroundSig<typename decltype(get_ending().order(fix(state_at<union_struct>(top_struct(), state))))::signature>) {
-		using dim_sig = sig_find_dim<Dim, State, typename decltype(top_struct())::signature>;
-		if constexpr(dim_sig::dependent) {
-			for_each_impl_dep<Dim, Branches...>(state, std::index_sequence_for<Branches...>());
+	constexpr void for_each_impl(dim_tree<Dim, Branches...>, State state) const noexcept {
+		if constexpr (is_activated_v<decltype(get_ending().order(fix(state_at<union_struct>(top_struct(), state))))>) {
+			get_ending()(order(fix(state)));
 		} else {
-			std::size_t len = top_struct().template length<Dim>(state);
-			for(std::size_t i = 0; i < len; i++)
-				for_each_impl(Branches()..., state.template with<index_in<Dim>>(i));
+			using dim_sig = sig_find_dim<Dim, State, typename decltype(top_struct())::signature>;
+			if constexpr(dim_sig::dependent) {
+				for_each_impl_dep<Dim, Branches...>(state, std::index_sequence_for<Branches...>());
+			} else {
+				std::size_t len = top_struct().template length<Dim>(state);
+				for(std::size_t i = 0; i < len; i++)
+					for_each_impl(Branches()..., state.template with<index_in<Dim>>(i));
+			}
 		}
+	}
+	template<IsState State>
+	constexpr void for_each_impl(dim_sequence<>, State state) const noexcept {
+		static_assert(is_activated_v<decltype(get_ending().order(fix(state_at<union_struct>(top_struct(), state))))>);
+		get_ending()(order(fix(state)));
 	}
 };
 

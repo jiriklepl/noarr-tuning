@@ -58,18 +58,35 @@ TEST_CASE("Planner trivial", "[planner]") {
 	auto abc_plan = planner(a, b, c).for_each_elem([&i](auto &&a, auto &&b, auto &&c) {
 		c += a * b;
 		i++;
-	}).template for_sections<'x', 'z'>([](auto inner) {
+	}).template for_sections<'x'>([](auto inner) {
+		auto x = get_index<'x'>(inner.state());
+
+		REQUIRE(x < 20);
+
+		inner();
+	}).template for_sections<'z'>([](auto inner) {
+		auto z = get_index<'z'>(inner.state());
+
+		REQUIRE(z < 40);
+
+		inner();
+	});
+
+	auto cba_plan = planner(a, b, c).template for_sections<'x', 'z'>([&i](auto inner) {
 		auto z = get_index<'z'>(inner.state());
 		auto x = get_index<'x'>(inner.state());
 
 		REQUIRE(z < 40);
 		REQUIRE(x < 20);
 
-		inner();
+		inner.for_each_elem([&i](auto &&a, auto &&b, auto &&c) {
+		c -= a * b;
+		i -= 2;
+	})();
 	}).order(reorder<'x', 'z', 'y'>());
 
 	auto c_check_plan = planner(c).for_each_elem([](auto &&c) {
-		REQUIRE(c == 1);
+		REQUIRE(c == 2);
 	}).order(hoist<'z'>());
 
 	REQUIRE(i == 0);
@@ -77,8 +94,20 @@ TEST_CASE("Planner trivial", "[planner]") {
 	a_plan();
 	b_plan();
 	c_plan();
-	abc_plan();
+	abc_plan.order(reorder<'z', 'x', 'y'>())();
+	abc_plan.order(reorder<'x', 'z', 'y'>())();
 	c_check_plan();
 
-	REQUIRE(i == 20*30*40);
+	REQUIRE(i == 2*20*30*40);
+
+	cba_plan();
+
+	auto c_check2_plan = planner(c).for_each_elem([](auto &&c) {
+		REQUIRE(c == 1);
+	}).order(hoist<'z'>());
+
+	c_check2_plan();
+	c_check2_plan();
+
+	REQUIRE(i == 0);
 }
