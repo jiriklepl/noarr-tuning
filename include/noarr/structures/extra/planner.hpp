@@ -104,6 +104,9 @@ struct planner_ending_t : flexible_contain<F> {
 template<class Sig, class F>
 struct is_activated<planner_ending_t<Sig, F>> : std::integral_constant<bool, planner_ending_t<Sig, F>::activated> {};
 
+template<class Union, class Order, class Ending>
+struct planner_t;
+
 template<class Sig, class F, class Next>
 struct planner_sections_t : flexible_contain<F, Next> {
 	using signature = Sig;
@@ -135,22 +138,25 @@ struct planner_sections_t : flexible_contain<F, Next> {
 
 	template<class Planner>
 	constexpr void operator()(Planner planner) const noexcept {
-		if constexpr (IsGroundSig<typename decltype(this->order(fix(state_at<typename Planner::union_struct>(planner.top_struct(), empty_state))))::signature>)
-			flexible_contain<F, Next>::template get<0>()(planner.pop_ending());
-		else
+		if constexpr (IsGroundSig<typename decltype(this->order(fix(state_at<typename Planner::union_struct>(planner.top_struct(), empty_state))))::signature>) {
+			auto new_ending = planner.get_ending().get_next(fix(state_at<typename Planner::union_struct>(planner.top_struct(), empty_state)));
+
+			flexible_contain<F, Next>::template get<0>()(planner_t<typename Planner::union_struct, typename Planner::order_type, decltype(new_ending)>(planner.get_union(), planner.get_order(), new_ending));
+		} else {
 			flexible_contain<F, Next>::template get<1>()(planner);
+		}
 	}
 };
 
 template<class Sig, class F, class Next>
 struct is_activated<planner_sections_t<Sig, F, Next>> : std::integral_constant<bool, planner_sections_t<Sig, F, Next>::activated> {};
 
-template<class Union, class Order, class Ending>
-struct planner_t;
-
 template<class... Structs, class Order, class Ending>
 struct planner_t<union_t<Structs...>, Order, Ending> : flexible_contain<union_t<Structs...>, Order, Ending> {
 	using union_struct = union_t<Structs...>;
+	using order_type = Order;
+	using ending_type = Ending;
+
 	using base = flexible_contain<union_struct, Order, Ending>;
 	using base::base;
 
@@ -180,7 +186,6 @@ struct planner_t<union_t<Structs...>, Order, Ending> : flexible_contain<union_t<
 		return planner_t<union_struct, decltype(get_order() ^ new_order), Ending>(get_union(), get_order() ^ new_order, get_ending());
 	}
 
-	// TODO: for_each after for_sections
 	template<class F> requires (std::same_as<Ending, planner_empty_t>)
 	[[nodiscard("returns a new planner")]]
 	constexpr auto for_each(F f) const noexcept {
@@ -195,12 +200,6 @@ struct planner_t<union_t<Structs...>, Order, Ending> : flexible_contain<union_t<
 		return planner_t<union_struct, Order, planner_ending_elem_t<signature, F>>(get_union(), get_order(), planner_ending_elem_t<signature, F>(f));
 	}
 
-	[[nodiscard("returns a new planner")]]
-	constexpr auto pop_ending() const noexcept {
-		return planner_t<union_struct, Order, std::remove_cvref_t<decltype(get_ending().get_next(fix(state_at<union_struct>(top_struct(), empty_state))))>>(get_union(), get_order(), get_ending().get_next(fix(state_at<union_struct>(top_struct(), empty_state))));
-	}
-
-	// TODO: multiple for_sections
 	template<auto... Dims, class F> requires (... && IsDim<decltype(Dims)>)
 	[[nodiscard("returns a new planner")]]
 	constexpr auto for_sections(F f) const noexcept {
