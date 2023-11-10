@@ -10,30 +10,18 @@
 #include "../structs/setters.hpp"
 #include "../extra/sig_utils.hpp"
 #include "../extra/traverser.hpp"
+#include <utility>
 
 namespace noarr {
 
 template <class Ending>
-struct is_activated;
+struct is_activated_impl;
+
+template <class Ending>
+using is_activated = is_activated_impl<std::remove_cvref_t<Ending>>;
 
 template <class Ending>
 constexpr bool is_activated_v = is_activated<Ending>::value;
-
-struct planner_empty_t {
-	using signature = scalar_sig<void>;
-
-	template<class NewOrder>
-	[[nodiscard]]
-	constexpr auto order(NewOrder) const noexcept {
-		return *this;
-	}
-
-	template<class Planner>
-	constexpr void operator()(Planner planner) = delete;
-};
-
-template<>
-struct is_activated<planner_empty_t> : std::false_type {};
 
 template<class Sig, class F>
 struct planner_ending_elem_t : flexible_contain<F> {
@@ -75,7 +63,7 @@ private:
 };
 
 template<class Sig, class F>
-struct is_activated<planner_ending_elem_t<Sig, F>> : std::integral_constant<bool, planner_ending_elem_t<Sig, F>::activated> {};
+struct is_activated_impl<planner_ending_elem_t<Sig, F>> : std::integral_constant<bool, planner_ending_elem_t<Sig, F>::activated> {};
 
 template<class Sig, class F>
 struct planner_ending_t : flexible_contain<F> {
@@ -102,19 +90,115 @@ struct planner_ending_t : flexible_contain<F> {
 };
 
 template<class Sig, class F>
-struct is_activated<planner_ending_t<Sig, F>> : std::integral_constant<bool, planner_ending_t<Sig, F>::activated> {};
+struct is_activated_impl<planner_ending_t<Sig, F>> : std::integral_constant<bool, planner_ending_t<Sig, F>::activated> {};
+
+template<class... Endings>
+struct planner_endings;
+
+template<class... Endings>
+constexpr auto make_planner_endings(Endings &&...) noexcept;
+
+template<class... Endings>
+constexpr auto make_planner_endings(flexible_contain<Endings...>) noexcept;
+
+template<class... Endings>
+struct planner_endings : flexible_contain<Endings...> {
+	static constexpr std::size_t activated_count = (0 + ... + (is_activated_v<Endings> ? 1 : 0));
+	static_assert(activated_count <= 1, "ambiguous activation of planner endings");
+	static constexpr bool activated = activated_count == 1;
+
+	using flexible_contain<Endings...>::flexible_contain;
+
+	explicit constexpr planner_endings(flexible_contain<Endings...> contain) noexcept
+		: flexible_contain<Endings...>(contain) {}
+
+	template<class NewOrder>
+	[[nodiscard]]
+	constexpr auto order(NewOrder new_order) const noexcept {
+		return order(new_order, std::index_sequence_for<Endings...>());
+	}
+
+	template <std::size_t... Is>
+	[[nodiscard]]
+	constexpr auto order(auto new_order, std::integer_sequence<std::size_t, Is...>) const noexcept {
+		return make_planner_endings(this->template get<Is>().order(new_order)...);
+	}
+
+	[[nodiscard]]
+	static constexpr auto get_next_ending(auto order, auto ending) noexcept {
+		if constexpr (is_activated_v<decltype(ending.order(order))>)
+			return helpers::contain();
+		else
+			return helpers::contain(ending);
+	}
+
+	[[nodiscard]]
+	constexpr auto get_next(auto order) const noexcept requires is_activated_v<decltype(this->order(order))> {
+		return get_next(order, std::index_sequence_for<Endings...>());
+	}
+
+	template <std::size_t... Is>
+	[[nodiscard]]
+	constexpr auto get_next(auto order, std::integer_sequence<std::size_t, Is...>) const noexcept requires is_activated_v<decltype(this->order(order))> {
+		return make_planner_endings(contain_cat(get_next_ending(order, this->template get<Is>())...));
+	}
+
+	[[nodiscard]]
+	static consteval std::size_t activated_index() noexcept requires activated {
+		return activated_index(std::index_sequence_for<Endings...>());
+	}
+
+	template <std::size_t... Is>
+	[[nodiscard]]
+	static consteval std::size_t activated_index(std::integer_sequence<std::size_t, Is...>) noexcept requires activated {
+		return (0 + ... + (is_activated_v<decltype(std::declval<planner_endings>().flexible_contain<Endings...>::template get<Is>())> ? Is : 0));
+	}
+
+	[[nodiscard]]
+	constexpr auto add_ending(auto ending) const noexcept {
+		return add_ending(ending, std::index_sequence_for<Endings...>());
+	}
+
+	template <std::size_t... Is>
+	[[nodiscard]]
+	constexpr auto add_ending(auto ending, std::integer_sequence<std::size_t, Is...>) const noexcept {
+		return make_planner_endings(this->template get<Is>()..., ending);
+	}
+
+	template<class Planner>
+	constexpr void operator()(Planner planner) const noexcept requires is_activated_v<decltype(this->order(fix(state_at<typename Planner::union_struct>(planner.top_struct(), empty_state))))> {
+		this->template get<decltype(std::declval<planner_endings>().order(fix(state_at<typename Planner::union_struct>(planner.top_struct(), empty_state))))::activated_index()>()(planner.pop_endings());
+	}
+};
+
+template<class... Endings>
+struct is_activated_impl<planner_endings<Endings...>> : std::integral_constant<bool, planner_endings<Endings...>::activated> {};
+
+template<class... Endings>
+planner_endings(Endings &&...) -> planner_endings<std::remove_cvref_t<Endings>...>;
+
+template<class... Endings>
+planner_endings(helpers::contain<Endings...>) -> planner_endings<std::remove_cvref_t<Endings>...>;
+
+template<class... Endings>
+constexpr auto make_planner_endings(Endings &&...endings) noexcept {
+	return planner_endings(std::forward<Endings>(endings)...);
+}
+
+template<class... Endings>
+constexpr auto make_planner_endings(flexible_contain<Endings...> contain) noexcept {
+	return planner_endings(contain);
+}
 
 template<class Union, class Order, class Ending>
 struct planner_t;
 
-template<class Sig, class F, class Next>
-struct planner_sections_t : flexible_contain<F, Next> {
+template<class Sig, class F>
+struct planner_sections_t : flexible_contain<F> {
 	using signature = Sig;
-	using next = Next;
-	static_assert(!(IsGroundSig<signature> && is_activated_v<Next>), "ambiguous activation of planner endings");
-	static constexpr bool activated = IsGroundSig<signature> || is_activated_v<Next>;
+	static constexpr bool activated = IsGroundSig<signature>;
 
-	using flexible_contain<F, Next>::flexible_contain;
+	using flexible_contain<F>::flexible_contain;
 
 	template<class NewOrder>
 	[[nodiscard]]
@@ -124,32 +208,22 @@ struct planner_sections_t : flexible_contain<F, Next> {
 			static_assert(!always_false<signature>);
 		};
 
-		return planner_sections_t<typename decltype(sigholder_t() ^ new_order)::signature, F, std::remove_cvref_t<decltype(this->template get<1>().order(new_order))>>(flexible_contain<F, Next>::template get<0>(), flexible_contain<F, Next>::template get<1>().order(new_order));
-	}
-
-	template<class Order>
-	[[nodiscard]]
-	constexpr decltype(auto) get_next(Order order) const noexcept requires is_activated_v<decltype(this->order(order))> {
-		if constexpr(IsGroundSig<typename decltype(this->order(order))::signature>)
-			return flexible_contain<F, Next>::template get<1>();
-		else
-			return planner_sections_t<Sig, F, std::remove_cvref_t<decltype(this->template get<1>().get_next(order))>>(flexible_contain<F, Next>::template get<0>(),flexible_contain<F, Next>::template get<1>().get_next(order));
+		return planner_sections_t<typename decltype(sigholder_t() ^ new_order)::signature, F>(flexible_contain<F>::get());
 	}
 
 	template<class Planner>
 	constexpr void operator()(Planner planner) const noexcept {
-		if constexpr (IsGroundSig<typename decltype(this->order(fix(state_at<typename Planner::union_struct>(planner.top_struct(), empty_state))))::signature>) {
-			auto new_ending = planner.get_ending().get_next(fix(state_at<typename Planner::union_struct>(planner.top_struct(), empty_state)));
-
-			flexible_contain<F, Next>::template get<0>()(planner_t<typename Planner::union_struct, typename Planner::order_type, decltype(new_ending)>(planner.get_union(), planner.get_order(), new_ending));
-		} else {
-			flexible_contain<F, Next>::template get<1>()(planner);
-		}
+		flexible_contain<F>::get()(planner);
 	}
 };
 
-template<class Sig, class F, class Next>
-struct is_activated<planner_sections_t<Sig, F, Next>> : std::integral_constant<bool, planner_sections_t<Sig, F, Next>::activated> {};
+template<class Sig, class F>
+struct is_activated_impl<planner_sections_t<Sig, F>> : std::integral_constant<bool, planner_sections_t<Sig, F>::activated> {};
+
+template<class Union, class Order_, class Ending_>
+constexpr auto make_planner(Union &&union_struct, Order_ &&order, Ending_ &&ending) noexcept {
+	return planner_t(std::forward<Union>(union_struct), std::forward<Order_>(order), std::forward<Ending_>(ending));
+}
 
 template<class... Structs, class Order, class Ending>
 struct planner_t<union_t<Structs...>, Order, Ending> : flexible_contain<union_t<Structs...>, Order, Ending> {
@@ -183,21 +257,26 @@ struct planner_t<union_t<Structs...>, Order, Ending> : flexible_contain<union_t<
 	template<class NewOrder>
 	[[nodiscard("returns a new planner")]]
 	constexpr auto order(NewOrder new_order) const noexcept {
-		return planner_t<union_struct, decltype(get_order() ^ new_order), Ending>(get_union(), get_order() ^ new_order, get_ending());
+		return make_planner(get_union(), get_order() ^ new_order, get_ending());
 	}
 
-	template<class F> requires (std::same_as<Ending, planner_empty_t>)
+	[[nodiscard("returns a new planner")]]
+	constexpr auto pop_endings() const noexcept {
+		return make_planner(get_union(), get_order(), get_ending().get_next(fix(state_at<union_struct>(top_struct(), empty_state))));
+	}
+
+	template<class F> requires (std::same_as<Ending, planner_endings<>>)
 	[[nodiscard("returns a new planner")]]
 	constexpr auto for_each(F f) const noexcept {
 		using signature = typename decltype(get_union())::signature;
-		return planner_t<union_struct, Order, planner_ending_t<signature, F>>(get_union(), get_order(), planner_ending_t<signature, F>(f));
+		return make_planner(get_union(), get_order(), planner_endings(planner_ending_t<signature, F>(f)));
 	}
 
-	template<class F> requires (std::same_as<Ending, planner_empty_t>)
+	template<class F> requires (std::same_as<Ending, planner_endings<>>)
 	[[nodiscard("returns a new planner")]]
 	constexpr auto for_each_elem(F f) const noexcept {
 		using signature = typename decltype(get_union())::signature;
-		return planner_t<union_struct, Order, planner_ending_elem_t<signature, F>>(get_union(), get_order(), planner_ending_elem_t<signature, F>(f));
+		return make_planner(get_union(), get_order(), planner_endings(planner_ending_elem_t<signature, F>(f)));
 	}
 
 	template<auto... Dims, class F> requires (... && IsDim<decltype(Dims)>)
@@ -211,15 +290,15 @@ struct planner_t<union_t<Structs...>, Order, Ending> : flexible_contain<union_t<
 
 		using signature = typename decltype(sigholder_t() ^ reorder<Dims...>())::signature;
 
-		return planner_t<union_struct, Order, planner_sections_t<signature, F, Ending>>(get_union(), get_order(), planner_sections_t<signature, F, Ending>(f, get_ending()));
+		return make_planner(get_union(), get_order(), get_ending().add_ending(planner_sections_t<signature, F>(f)));
 	}
 
-	constexpr void execute() const noexcept requires (!std::same_as<Ending, planner_empty_t>) {
+	constexpr void execute() const noexcept requires (!std::same_as<Ending, planner_endings<>>) {
 		using dim_tree = sig_dim_tree<typename decltype(top_struct())::signature>;
 		for_each_impl(dim_tree(), empty_state);
 	}
 
-	constexpr void operator()() const noexcept requires (!std::same_as<Ending, planner_empty_t>) {
+	constexpr void operator()() const noexcept requires (!std::same_as<Ending, planner_endings<>>) {
 		execute();
 	}
 
@@ -272,7 +351,7 @@ constexpr auto planner(const Ts &... s) noexcept
 { return planner(make_union(s.get_ref()...)); }
 
 template<class... Ts>
-constexpr planner_t<union_t<Ts...>, neutral_proto, planner_empty_t> planner(union_t<Ts...> u) noexcept { return planner_t<union_t<Ts...>, neutral_proto, planner_empty_t>(u, neutral_proto(), planner_empty_t()); }
+constexpr planner_t<union_t<Ts...>, neutral_proto, planner_endings<>> planner(union_t<Ts...> u) noexcept { return planner_t<union_t<Ts...>, neutral_proto, planner_endings<>>(u, neutral_proto(), planner_endings<>()); }
 
 } // namespace noarr
 
