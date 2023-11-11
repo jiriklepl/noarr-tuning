@@ -10,7 +10,6 @@
 #include "../structs/setters.hpp"
 #include "../extra/sig_utils.hpp"
 #include "../extra/traverser.hpp"
-#include <utility>
 
 namespace noarr {
 
