@@ -1,8 +1,11 @@
 #ifndef NOARR_STRUCTURES_ZCURVE_HPP
 #define NOARR_STRUCTURES_ZCURVE_HPP
 
+#include <cstddef>
 #include <bit>
 #include <tuple>
+#include <type_traits>
+#include <utility>
 
 #include "../base/contain.hpp"
 #include "../base/signature.hpp"
@@ -14,9 +17,9 @@ namespace noarr {
 
 namespace helpers {
 
-template<auto... Dim> requires (... && IsDim<decltype(Dim)>)
+template<auto ...Dims> requires IsDimPack<decltype(Dims)...>
 struct zc_uniquity;
-template<IsDim auto Dim, auto... Dims> requires (... && IsDim<decltype(Dims)>)
+template<IsDim auto Dim, auto ...Dims> requires IsDimPack<decltype(Dims)...>
 struct zc_uniquity<Dim, Dims...> {
 	static constexpr bool value = (... && (Dims != Dim)) && zc_uniquity<Dims...>::value;
 };
@@ -32,18 +35,18 @@ struct zc_merged_len<static_arg_length<L0>, static_arg_length<L1>> { using type 
 template<std::size_t Value>
 struct zc_constexpr { static constexpr auto v = Value; };
 
-template<std::size_t... I, class F>
+template<std::size_t ...I, class F>
 constexpr void zc_static_for(std::index_sequence<I...>, F f) noexcept {
 	(..., f(zc_constexpr<I>()));
 }
 
-template<std::size_t... I, class F>
+template<std::size_t ...I, class F>
 constexpr auto zc_product_static_for(std::index_sequence<I...>, F f) noexcept {
 	return (... * f(zc_constexpr<I>()));
 }
 
-template<std::size_t Levels, class... SizeTs>
-constexpr std::tuple<SizeTs...> zc_general(std::size_t z, SizeTs... sizes) noexcept {
+template<std::size_t Levels, class ...SizeTs>
+constexpr std::tuple<SizeTs...> zc_general(std::size_t z, SizeTs ...sizes) noexcept {
 	static_assert((... && std::is_same_v<SizeTs, std::size_t>), "bug");
 	using EachDim = std::index_sequence_for<SizeTs...>;
 	std::tuple<SizeTs...> size = {sizes...};
@@ -82,7 +85,7 @@ struct zc_special_helper<Period, RepBits> {
 	static constexpr int num_iter = 0;
 };
 
-template<int NDim, int... I>
+template<int NDim, int ...I>
 constexpr std::size_t zc_special_inner(std::size_t tmp, std::integer_sequence<int, I...>) noexcept {
 	(..., (tmp &= zc_special_helper<(NDim << I), ((std::size_t) 1 << (1 << I)) - 1>::rep_bits, tmp |= tmp >> ((NDim - 1) << I)));
 	return tmp & (((std::size_t) 1 << (1 << sizeof...(I))) - 1);
@@ -96,9 +99,9 @@ constexpr std::size_t zc_special(std::size_t z) noexcept {
 
 template<class Acc, auto...>
 struct zc_dims_pop;
-template<auto... Acc, IsDim auto Head, auto... Tail>
+template<auto ...Acc, IsDim auto Head, auto ...Tail>
 struct zc_dims_pop<dim_sequence<Acc...>, Head, Tail...> : zc_dims_pop<dim_sequence<Acc..., Head>, Tail...> {};
-template<auto... Acc, IsDim auto Last>
+template<auto ...Acc, IsDim auto Last>
 struct zc_dims_pop<dim_sequence<Acc...>, Last> {
 	static constexpr auto dim = Last;
 	using dims = dim_sequence<Acc...>;
@@ -106,14 +109,14 @@ struct zc_dims_pop<dim_sequence<Acc...>, Last> {
 
 } // namespace helpers
 
-template<int SpecialLevel, int GeneralLevel, IsDim auto Dim, class T, auto... Dims>
+template<int SpecialLevel, int GeneralLevel, IsDim auto Dim, class T, auto ...Dims>
 struct merge_zcurve_t : strict_contain<T> {
 	using strict_contain<T>::strict_contain;
 
 	static constexpr char name[] = "merge_zcurve_t";
 	using params = struct_params<
-		value_param<int, SpecialLevel>,
-		value_param<int, GeneralLevel>,
+		value_param<SpecialLevel>,
+		value_param<GeneralLevel>,
 		dim_param<Dim>,
 		structure_param<T>,
 		dim_param<Dims>...>;
@@ -157,15 +160,15 @@ public:
 
 	using is = std::make_index_sequence<sizeof...(Dims)>;
 
-	template<std::size_t... DimsI, class State> requires (sizeof...(DimsI) == sizeof...(Dims) && IsState<State>)
+	template<std::size_t ...DimsI, class State> requires (sizeof...(DimsI) == sizeof...(Dims) && IsState<State>)
 	constexpr auto sub_state(State state, std::index_sequence<DimsI...>) const noexcept {
 		static_assert(!State::template contains<length_in<Dim>>, "Cannot set z-curve length");
-		auto clean_state = state.template remove<index_in<Dim>, index_in<Dims>..., length_in<Dims>...>();
+		const auto clean_state = state.template remove<index_in<Dim>, index_in<Dims>..., length_in<Dims>...>();
 		if constexpr(State::template contains<index_in<Dim>>) {
-			auto index = state.template get<index_in<Dim>>();
-			auto index_general = index >> SpecialLevel*sizeof...(Dims);
-			auto index_special = index & ((1 << SpecialLevel*sizeof...(Dims)) - 1);
-			auto indices = helpers::zc_general<GeneralLevel-SpecialLevel>(index_general, (sub_structure().template length<Dims>(clean_state) >> SpecialLevel)...);
+			const auto index = state.template get<index_in<Dim>>();
+			const auto index_general = index >> SpecialLevel*sizeof...(Dims);
+			const auto index_special = index & ((1 << SpecialLevel*sizeof...(Dims)) - 1);
+			const auto indices = helpers::zc_general<GeneralLevel-SpecialLevel>(index_general, (sub_structure().template length<Dims>(clean_state) >> SpecialLevel)...);
 			return clean_state.template with<index_in<Dims>...>(((std::get<DimsI>(indices) << SpecialLevel) + helpers::zc_special<sizeof...(Dims), DimsI>(index_special))...);
 		} else {
 			return clean_state;
@@ -199,7 +202,7 @@ public:
 	}
 };
 
-template<int SpecialLevel, int GeneralLevel, IsDim auto Dim, auto... Dims>
+template<int SpecialLevel, int GeneralLevel, IsDim auto Dim, auto ...Dims>
 struct merge_zcurve_proto {
 	static constexpr bool proto_preserves_layout = true;
 
@@ -207,7 +210,7 @@ struct merge_zcurve_proto {
 	constexpr auto instantiate_and_construct(Struct s) const noexcept { return merge_zcurve_t<SpecialLevel, GeneralLevel, Dim, Struct, Dims...>(s); }
 };
 
-template<auto... AllDims>
+template<auto ...AllDims>
 struct merge_zcurve {
 private:
 	using dims_pop = helpers::zc_dims_pop<dim_sequence<>, AllDims...>;
@@ -223,7 +226,7 @@ public:
 	}
 
 private:
-	template<int SpecialLevel, int GeneralLevel, IsDim auto Dim, auto... Dims>
+	template<int SpecialLevel, int GeneralLevel, IsDim auto Dim, auto ...Dims>
 	static constexpr merge_zcurve_proto<SpecialLevel, GeneralLevel, Dim, Dims...> maxlen_alignment(dim_sequence<Dims...>) noexcept {
 		return {};
 	}

@@ -1,6 +1,10 @@
 #ifndef NOARR_STRUCTURES_SLICE_HPP
 #define NOARR_STRUCTURES_SLICE_HPP
 
+#include <cstddef>
+#include <type_traits>
+#include <utility>
+
 #include "../base/contain.hpp"
 #include "../base/signature.hpp"
 #include "../base/state.hpp"
@@ -35,7 +39,7 @@ private:
 		struct subtract<static_arg_length<L>, std::integral_constant<std::size_t, S>> { using type = static_arg_length<L-S>; };
 		using type = function_sig<Dim, typename subtract<ArgLength, StartT>::type, RetSig>;
 	};
-	template<class... RetSigs>
+	template<class ...RetSigs>
 	struct dim_replacement<dep_function_sig<Dim, RetSigs...>> {
 		using original = dep_function_sig<Dim, RetSigs...>;
 		static_assert(StartT::value || true, "Cannot shift a tuple dimension dynamically");
@@ -44,7 +48,7 @@ private:
 
 		template<class Indices = std::make_index_sequence<len>>
 		struct pack_helper;
-		template<std::size_t... Indices>
+		template<std::size_t ...Indices>
 		struct pack_helper<std::index_sequence<Indices...>> { using type = dep_function_sig<Dim, typename original::template ret_sig<Indices+start>...>; };
 
 		using type = typename pack_helper<>::type;
@@ -55,7 +59,7 @@ public:
 	template<IsState State>
 	constexpr auto sub_state(State state) const noexcept {
 		using namespace constexpr_arithmetic;
-		auto tmp_state = state.template remove<index_in<Dim>, length_in<Dim>>();
+		const auto tmp_state = state.template remove<index_in<Dim>, length_in<Dim>>();
 		if constexpr(State::template contains<index_in<Dim>>)
 			if constexpr(State::template contains<length_in<Dim>>)
 				return tmp_state.template with<index_in<Dim>, length_in<Dim>>(state.template get<index_in<Dim>>() + start(), state.template get<length_in<Dim>>() + start());
@@ -113,8 +117,8 @@ struct shift_proto : strict_contain<StartT> {
  * @tparam Dim: the dimension names
  * @param start: parameters for shifting the indices
  */
-template<auto... Dim, class... StartT> requires (... && IsDim<decltype(Dim)>)
-constexpr auto shift(StartT... start) noexcept { return (... ^ shift_proto<Dim, good_index_t<StartT>>(start)); }
+template<auto ...Dims, class ...StartT> requires IsDimPack<decltype(Dims)...>
+constexpr auto shift(StartT ...start) noexcept { return (... ^ shift_proto<Dims, good_index_t<StartT>>(start)); }
 
 template<>
 constexpr auto shift<>() noexcept { return neutral_proto(); }
@@ -139,7 +143,7 @@ private:
 	struct dim_replacement;
 	template<class ArgLength, class RetSig>
 	struct dim_replacement<function_sig<Dim, ArgLength, RetSig>> { using type = function_sig<Dim, arg_length_from_t<LenT>, RetSig>; };
-	template<class... RetSigs>
+	template<class ...RetSigs>
 	struct dim_replacement<dep_function_sig<Dim, RetSigs...>> {
 		using original = dep_function_sig<Dim, RetSigs...>;
 		static_assert(StartT::value || true, "Cannot slice a tuple dimension dynamically");
@@ -149,7 +153,7 @@ private:
 
 		template<class Indices = std::make_index_sequence<len>>
 		struct pack_helper;
-		template<std::size_t... Indices>
+		template<std::size_t ...Indices>
 		struct pack_helper<std::index_sequence<Indices...>> { using type = dep_function_sig<Dim, typename original::template ret_sig<Indices+start>...>; };
 
 		using type = typename pack_helper<>::type;
@@ -227,7 +231,7 @@ private:
 	struct dim_replacement;
 	template<class ArgLength, class RetSig>
 	struct dim_replacement<function_sig<Dim, ArgLength, RetSig>> { using type = function_sig<Dim, arg_length_from_t<EndT>, RetSig>; };
-	template<class... RetSigs>
+	template<class ...RetSigs>
 	struct dim_replacement<dep_function_sig<Dim, RetSigs...>> {
 		using original = dep_function_sig<Dim, RetSigs...>;
 		static_assert(StartT::value || true, "Cannot span a tuple dimension dynamically");
@@ -237,7 +241,7 @@ private:
 
 		template<class Indices = std::make_index_sequence<end - start>>
 		struct pack_helper;
-		template<std::size_t... Indices>
+		template<std::size_t ...Indices>
 		struct pack_helper<std::index_sequence<Indices...>> { using type = dep_function_sig<Dim, typename original::template ret_sig<Indices+start>...>; };
 
 		using type = typename pack_helper<>::type;
@@ -317,7 +321,7 @@ private:
 	struct dim_replacement;
 	template<class ArgLength, class RetSig>
 	struct dim_replacement<function_sig<Dim, ArgLength, RetSig>> { using type = function_sig<Dim, arg_length_from_t<StrideT>, RetSig>; };
-	template<class... RetSigs>
+	template<class ...RetSigs>
 	struct dim_replacement<dep_function_sig<Dim, RetSigs...>> {
 		using original = dep_function_sig<Dim, RetSigs...>;
 		static_assert(StartT::value || true, "Cannot slice a tuple dimension dynamically");
@@ -328,7 +332,7 @@ private:
 
 		template<class Indices = std::make_index_sequence<(sub_length + stride - start - 1) / stride>>
 		struct pack_helper;
-		template<std::size_t... Indices>
+		template<std::size_t ...Indices>
 		struct pack_helper<std::index_sequence<Indices...>> { using type = dep_function_sig<Dim, typename original::template ret_sig<Indices*stride+start>...>; };
 
 		using type = typename pack_helper<>::type;
@@ -362,7 +366,7 @@ public:
 		using namespace constexpr_arithmetic;
 		static_assert(!State::template contains<length_in<Dim>>, "Cannot set length after step");
 		if constexpr(QDim == Dim) {
-			auto sub_length = sub_structure().template length<Dim>(state);
+			const auto sub_length = sub_structure().template length<Dim>(state);
 			return (sub_length + stride() - start() - make_const<1>()) / stride();
 		} else {
 			return sub_structure().template length<QDim>(sub_state(state));
@@ -422,14 +426,14 @@ private:
 	struct dim_replacement {
 		using type = Original;
 	};
-	template<class... RetSigs>
+	template<class ...RetSigs>
 	struct dim_replacement<dep_function_sig<Dim, RetSigs...>> {
 		using original = dep_function_sig<Dim, RetSigs...>;
 		static constexpr std::size_t len = sizeof...(RetSigs);
 
 		template<class Indices = std::make_index_sequence<len>>
 		struct pack_helper;
-		template<std::size_t... Indices>
+		template<std::size_t ...Indices>
 		struct pack_helper<std::index_sequence<Indices...>> { using type = dep_function_sig<Dim, typename original::template ret_sig<len-1-Indices>...>; };
 
 		using type = typename pack_helper<>::type;
@@ -441,7 +445,7 @@ public:
 	constexpr auto sub_state(State state) const noexcept {
 		using namespace constexpr_arithmetic;
 		if constexpr(State::template contains<index_in<Dim>>) {
-			auto tmp_state = state.template remove<index_in<Dim>>();
+			const auto tmp_state = state.template remove<index_in<Dim>>();
 			return tmp_state.template with<index_in<Dim>>(sub_structure().template length<Dim>(tmp_state) - make_const<1>() - state.template get<index_in<Dim>>());
 		} else {
 			return state;
@@ -481,8 +485,8 @@ struct reverse_proto {
  *
  * @tparam Dim: the dimension names
  */
-template<auto... Dim> requires (... && IsDim<decltype(Dim)>)
-constexpr auto reverse() noexcept { return (... ^ reverse_proto<Dim>()); }
+template<auto ...Dims> requires IsDimPack<decltype(Dims)...>
+constexpr auto reverse() noexcept { return (... ^ reverse_proto<Dims>()); }
 
 template<>
 constexpr auto reverse<>() noexcept { return neutral_proto(); }

@@ -1,7 +1,9 @@
 #ifndef NOARR_STRUCTURES_MANGLE_HPP
 #define NOARR_STRUCTURES_MANGLE_HPP
 
+#include <cstddef>
 #include <limits>
+#include <utility>
 
 #include "../base/contain.hpp"
 #include "../base/structs_common.hpp"
@@ -12,7 +14,7 @@ namespace noarr {
 template<class CharPack>
 struct char_seq_to_str;
 
-template<char... C>
+template<char ...C>
 struct char_seq_to_str<std::integer_sequence<char, C...>> {
 	static constexpr char c_str[] = {C..., '\0'};
 	static constexpr std::size_t length = sizeof...(C);
@@ -47,11 +49,11 @@ using mangle_value = typename mangle_value_impl<T, V>::type;
 template<class T, T V, class Acc = std::integer_sequence<char>>
 struct mangle_integral;
 
-template<class T, char... Acc, T V> requires (V >= 10)
+template<class T, char ...Acc, T V> requires (V >= 10)
 struct mangle_integral<T, V, std::integer_sequence<char, Acc...>>
 	: mangle_integral<T, V / 10, std::integer_sequence<char, (char)(V % 10) + '0', Acc...>> {};
 
-template<class T, char... Acc, T V> requires (V < 10 && V >= 0)
+template<class T, char ...Acc, T V> requires (V < 10 && V >= 0)
 struct mangle_integral<T, V, std::integer_sequence<char, Acc...>> {
 	using type = std::integer_sequence<char, (char)(V % 10) + '0', Acc...>;
 };
@@ -117,13 +119,13 @@ struct mangle_param<structure_param<T>> { using type = integer_sequence_concat<m
 template<class T>
 struct mangle_param<type_param<T>> { using type = integer_sequence_concat<typename scalar_name<T>::type>; };
 
-template<class T, T V>
-struct mangle_param<value_param<T, V>> { using type = integer_sequence_concat<std::integer_sequence<char, '('>, typename scalar_name<T>::type, std::integer_sequence<char, ')'>, mangle_value<T, V>>; };
+template<auto V>
+struct mangle_param<value_param<V>> { using type = integer_sequence_concat<std::integer_sequence<char, '('>, typename scalar_name<decltype(V)>::type, std::integer_sequence<char, ')'>, mangle_value<decltype(V), V>>; };
 
 template<char Dim>
 struct mangle_param<dim_param<Dim>> { using type = integer_sequence_concat<std::integer_sequence<char, '\'', Dim, '\''>>; };
 
-template<const char Name[], std::size_t... Indices, class... Params>
+template<const char Name[], std::size_t ...Indices, class ...Params>
 struct mangle_desc<Name, std::index_sequence<Indices...>, struct_params<Params...>> {
 	using type = integer_sequence_concat<
 		std::integer_sequence<char, Name[Indices]..., '<'>,
@@ -132,10 +134,10 @@ struct mangle_desc<Name, std::index_sequence<Indices...>, struct_params<Params..
 };
 
 struct mangle_expr_helpers {
-	template<class... Ts>
+	template<class ...Ts>
 	static inline std::index_sequence_for<Ts...> get_contain_indices(const flexible_contain<Ts...> &) noexcept; // undefined, use in decltype
 
-	template<class String, class T, std::size_t... Indices>
+	template<class String, class T, std::size_t ...Indices>
 	static constexpr void append_items(String &out, const T &t, std::index_sequence<Indices...>) {
 		(..., (append(out, t.template get<Indices>()), out.push_back(',')));
 	}
