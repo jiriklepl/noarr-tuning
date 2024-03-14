@@ -131,8 +131,8 @@ struct interpret<Name, range_t, Start, End, Step> : flexible_contain<Start, End,
 	constexpr interpret(name_holder<Name>, range_t, T &&end)
 		: flexible_contain<std::remove_cvref_t<T>, std::remove_cvref_t<T>, std::remove_cvref_t<T>>(0, std::forward<T>(end), 1) {}
 
-	template<class Start, class End, class Step>
-	constexpr interpret(name_holder<Name>, range_t, Start &&begin, End &&end, Step &&step = (Step)1)
+	template<class Start_, class End_, class Step_>
+	constexpr interpret(name_holder<Name>, range_t, Start_ &&begin, End_ &&end, Step_ &&step = (Step)1)
 		: flexible_contain<Start, End, Step>(std::forward<Start>(begin), std::forward<End>(end), std::forward<Step>(step)) {}
 
 	constexpr decltype(auto) operator*() const noexcept {
