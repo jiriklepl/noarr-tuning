@@ -16,18 +16,15 @@ struct category_parameter {
 	std::size_t num_;
 };
 
-template<class T>
+template<class Start, class End, class Step>
 struct range_parameter {
-	constexpr range_parameter(T max) noexcept : min_(0), max_(max), step_((T)1) {}
-	constexpr range_parameter(T min, T max, T step = (T)1) noexcept : min_(min), max_(max), step_(step) {}
+	constexpr range_parameter(End max) noexcept : min_(0), max_(max), step_((Step)1) {}
+	constexpr range_parameter(Start min, End max, Step step = (Step)1) noexcept : min_(min), max_(max), step_(step) {}
 
-	T min_;
-	T max_;
-	T step_;
+	Start min_;
+	End max_;
+	Step step_;
 };
-
-// TODO: add multiple choice parameter
-struct multiple_choice_parameter {};
 
 struct permutation_parameter {
 	constexpr permutation_parameter(std::size_t num) noexcept : num_(num) {}
@@ -65,14 +62,14 @@ concept IsTunerFormatter = requires(T t) {
 
 	{ t.format("name", category_parameter(0)) };
 	{ t.format("name", permutation_parameter(0)) };
-	{ t.format("name", range_parameter<std::size_t>(0, 0, 0)) };
+	{ t.format("name", range_parameter<std::size_t, std::size_t, std::size_t>(0, 0, 0)) };
 };
 
 template<class T>
 concept IsConstrainedTunerFormatter = IsTunerFormatter<T> && requires(T t) {
 	{ t.format("name", category_parameter(0), predicate_parameter([](auto &&) { return true; })) };
 	{ t.format("name", permutation_parameter(0), predicate_parameter([](auto &&) { return true; })) };
-	{ t.format("name", range_parameter<std::size_t>(0, 0, 0), predicate_parameter([](auto &&) { return true; })) };
+	{ t.format("name", range_parameter<std::size_t, std::size_t, std::size_t>(0, 0, 0), predicate_parameter([](auto &&) { return true; })) };
 };
 
 } // namespace noarr::tuning
