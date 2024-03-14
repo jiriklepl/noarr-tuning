@@ -123,17 +123,17 @@ private:
 };
 
 // TODO: add version with constants
-template<class Name, class Range> requires (!IsDefined<Name>)
-struct interpret<Name, range_t, Range, Range, Range> : flexible_contain<Range, Range, Range> {
+template<class Name, class Start, class End, class Step> requires (!IsDefined<Name>)
+struct interpret<Name, range_t, Start, End, Step> : flexible_contain<Start, End, Step> {
 	using name = Name;
 
 	template<class T>
 	constexpr interpret(name_holder<Name>, range_t, T &&end)
-		: flexible_contain<Range, Range, Range>(0, std::forward<T>(end), 1) {}
+		: flexible_contain<std::remove_cvref_t<T>, std::remove_cvref_t<T>, std::remove_cvref_t<T>>(0, std::forward<T>(end), 1) {}
 
 	template<class Start, class End, class Step>
-	constexpr interpret(name_holder<Name>, range_t, Start &&begin, End &&end, Step &&step = (Range)1)
-		: flexible_contain<Range, Range, Range>(std::forward<Start>(begin), std::forward<End>(end), std::forward<Step>(step)) {}
+	constexpr interpret(name_holder<Name>, range_t, Start &&begin, End &&end, Step &&step = (Step)1)
+		: flexible_contain<Start, End, Step>(std::forward<Start>(begin), std::forward<End>(end), std::forward<Step>(step)) {}
 
 	constexpr decltype(auto) operator*() const noexcept {
 		return this->template get<0>();
@@ -229,17 +229,17 @@ struct interpret<Name, choice_t, Choice, Choices...> : flexible_contain<Choice> 
 };
 
 // TODO: add version with constants
-template<class Name, class Range> requires (!IsDefined<Name>)
-struct interpret<Name, range_t, Range, Range, Range> : flexible_contain<Range> {
+template<class Name, class Start, class End, class Step> requires (!IsDefined<Name>)
+struct interpret<Name, range_t, Start, End, Step> : flexible_contain<Start> {
 	using name = Name;
 
 	template<class T>
 	constexpr interpret(name_holder<Name>, range_t, T &&)
-		: flexible_contain<Range>(0) {}
+		: flexible_contain<Start>((Start)0) {}
 
-	template<class Start, class End, class Step>
-	constexpr interpret(name_holder<Name>, range_t, Start &&begin, End &&, Step && = (Range)1)
-		: flexible_contain<Range>(std::forward<Start>(begin)) {}
+	template<class Start_, class End_, class Step_>
+	constexpr interpret(name_holder<Name>, range_t, Start_ &&begin, End_ &&, Step_ && = (Step)1)
+		: flexible_contain<Start>(std::forward<Start_>(begin)) {}
 
 	constexpr decltype(auto) operator*() const noexcept {
 		return this->get();
@@ -295,20 +295,20 @@ struct interpret<Name, choice_t, Choices...> : flexible_contain<Choices...>  {
 	constexpr void generate(Ts &&...) const noexcept { }
 };
 
-template<class Name, class Range> requires (IsDefined<Name>)
-struct interpret<Name, range_t, Range, Range, Range> {
+template<class Name, class Start, class End, class Step> requires (IsDefined<Name>)
+struct interpret<Name, range_t, Start, End, Step> {
 	using name = Name;
 
 	template<class T>
 	constexpr interpret(name_holder<Name>, range_t, T &&)
 	{}
 
-	template<class Start, class End, class Step>
-	constexpr interpret(name_holder<Name>, range_t, Start &&, End &&, Step && = (Range)1)
+	template<class Start_, class End_, class Step_>
+	constexpr interpret(name_holder<Name>, range_t, Start_ &&, End_ &&, Step_ && = (Step)1)
 	{}
 
-	constexpr Range operator*() const noexcept {
-		return (Range)Name::value.template get<0>();
+	constexpr decltype(auto) operator*() const noexcept {
+		return Name::value.template get<0>();
 	}
 
 	constexpr decltype(auto) operator->() const noexcept {
