@@ -96,8 +96,8 @@ study.optimize(application_tuner, n_trials=100)
 		out_ << "  " << name_ << " = trial.suggest_categorical('" << name_ << "', list(map(lambda x: ','.join(x), itertools.permutations(map(str, range(" << par.num_ << "))))))" << std::endl;
 	}
 
-	template<class T>
-	void format(std::string_view name, const range_parameter<T> &par) {
+	template<class Start, class End, class Step>
+	void format(std::string_view name, const range_parameter<Start, End, Step> &par) {
 		using namespace std::string_literals;
 
 		std::string name_ = "NOARR_PARAMETER_VALUE_"s;

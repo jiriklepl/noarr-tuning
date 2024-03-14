@@ -65,8 +65,8 @@ public:
 		return atf::tuning_parameter(name, atf::interval((std::size_t)0, par.num_ - 1), std::forward<Constraint>(constraint));
 	}
 
-	template<class T>
-	auto format(const char *name, const range_parameter<T> &par) {
+	template<class Start, class End, class Step>
+	auto format(const char *name, const range_parameter<Start, End, Step> &par) {
 		using namespace std::string_literals;
 
 		compile_command_builder_->add_define("NOARR_PARAMETER_VALUE_"s + name, "$"s + name);
@@ -74,8 +74,8 @@ public:
 		return atf::tuning_parameter(name, atf::interval(par.min_, par.max_ - (T)1, par.step_));
 	}
 
-	template<class T, class Constraint>
-	auto format(const char *name, const range_parameter<T> &par, Constraint &&constraint) {
+	template<class Start, class End, class Step, class Constraint>
+	auto format(const char *name, const range_parameter<Start, End, Step> &par, Constraint &&constraint) {
 		using namespace std::string_literals;
 
 		compile_command_builder_->add_define("NOARR_PARAMETER_VALUE_"s + name, "$"s + name);

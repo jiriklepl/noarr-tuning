@@ -45,8 +45,8 @@ public:
 			<< "PermutationParameter('" << name << "', range(" << par.num_ << ")))" << std::endl;
 	}
 
-	template<class T>
-	void format(const char *name, const range_parameter<T> &par) const {
+	template<class Start, class End, class Step>
+	void format(const char *name, const range_parameter<Start, End, Step> &par) const {
 		if (par.step_ != 1)
 			throw std::runtime_error("OpenTuner does not support step in range parameters");
 
@@ -125,8 +125,8 @@ public:
 			"{str.join(\",\", map(str, config[\""s + name + "\"]))}");
 	}
 
-	template<class T>
-	void format(const char *name, const range_parameter<T> &) {
+	template<class Start, class End, class Step>
+	void format(const char *name, const range_parameter<Start, End, Step> &) {
 		using std::string_literals::operator""s;
 
 		compile_command_builder_->add_define(
