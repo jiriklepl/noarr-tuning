@@ -22,22 +22,6 @@ inline constexpr end_t end;
 struct choice_t {};
 inline constexpr choice_t choice;
 
-// TODO: name
-// TODO: implement
-struct multi_choice_t {};
-inline constexpr multi_choice_t multi_choice;
-
-// TODO: name
-// TODO: implement
-struct sequence_t {};
-inline constexpr sequence_t sequence;
-
-// TODO: name
-// TODO: implement
-struct plain_code_t {};
-inline constexpr plain_code_t plain_code;
-
-// TODO: implement
 struct value_t {};
 inline constexpr value_t value;
 
@@ -47,14 +31,9 @@ inline constexpr permutation_t permutation;
 struct range_t {};
 inline constexpr range_t range;
 
-// TODO: implement
-struct lambda_t {};
-
 template<class ValueType>
 concept IsDefined = requires{ ValueType::value; };
 
-// TODO: name
-// TODO: implement
 template<class Name, class Parameter, class ...Things>
 struct interpret;
 
@@ -359,6 +338,27 @@ struct interpret<Name, permutation_t, Choices...> : flexible_contain<Choices...>
 	template<class ...Ts>
 	constexpr void generate(Ts &&...) const noexcept { }
 };
+
+template<class Name, class Value>
+struct interpret<Name, value_t, Value> : flexible_contain<Value>  {
+	using name = Name;
+
+	template<class T>
+	constexpr interpret(name_holder<Name>, value_t, T &&value)
+		: flexible_contain<Value>(std::forward<T>(value)) {}
+
+	constexpr decltype(auto) operator*() const noexcept {
+		return this->template get<0>();
+	}
+
+	constexpr decltype(auto) operator->() const noexcept {
+		return &**this;
+	}
+
+	template<class ...Ts>
+	constexpr void generate(Ts &&...) const noexcept { }
+};
+
 
 template<class Formatter, class Parameter, class Constraint>
 class definition_t {

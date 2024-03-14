@@ -64,7 +64,6 @@ concept IsTunerFormatter = requires(T t) {
 	{ t.footer() };
 
 	{ t.format("name", category_parameter(0)) };
-	{ t.format("name", multiple_choice_parameter()) }; // TODO: think about this
 	{ t.format("name", permutation_parameter(0)) };
 	{ t.format("name", range_parameter<std::size_t>(0, 0, 0)) };
 };
@@ -72,7 +71,6 @@ concept IsTunerFormatter = requires(T t) {
 template<class T>
 concept IsConstrainedTunerFormatter = IsTunerFormatter<T> && requires(T t) {
 	{ t.format("name", category_parameter(0), predicate_parameter([](auto &&) { return true; })) };
-	{ t.format("name", multiple_choice_parameter(), predicate_parameter([](auto &&) { return true; })) }; // TODO: think about this
 	{ t.format("name", permutation_parameter(0), predicate_parameter([](auto &&) { return true; })) };
 	{ t.format("name", range_parameter<std::size_t>(0, 0, 0), predicate_parameter([](auto &&) { return true; })) };
 };

@@ -65,17 +65,6 @@ public:
 		return atf::tuning_parameter(name, atf::interval((std::size_t)0, par.num_ - 1), std::forward<Constraint>(constraint));
 	}
 
-	// TODO
-	[[noreturn]]
-	void format(const char *, const multiple_choice_parameter &) const {
-		throw std::runtime_error("Multiple choice parameters are not supported");
-	}
-
-	[[noreturn]]
-	void format(const char *, const multiple_choice_parameter &, auto &&) const {
-		throw std::runtime_error("Multiple choice parameters are not supported");
-	}
-
 	template<class T>
 	auto format(const char *name, const range_parameter<T> &par) {
 		using namespace std::string_literals;

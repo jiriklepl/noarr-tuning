@@ -84,12 +84,6 @@ study.optimize(application_tuner, n_trials=100)
 		out_ << "  " << name_ << " = trial.suggest_categorical('" << name_ << "', range(" << par.num_ << "))" << std::endl;
 	}
 
-	// TODO
-	[[noreturn]]
-	void format(const multiple_choice_parameter &) const {
-		throw std::runtime_error("Multiple choice parameters are not supported");
-	}
-
 	void format(std::string_view name, const permutation_parameter &par) {
 		using namespace std::string_literals;
 

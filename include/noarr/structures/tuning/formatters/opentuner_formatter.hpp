@@ -40,12 +40,6 @@ public:
 			<< "SwitchParameter('" << name << "', " << par.num_ << "))" << std::endl;
 	}
 
-	// TODO
-	[[noreturn]]
-	void format(const char *, const multiple_choice_parameter &) const {
-		throw std::runtime_error("Multiple choice parameters are not supported");
-	}
-
 	void format(const char *name, const permutation_parameter &par) const {
 		out_ << std::string(indent_level_ + 2, ' ')  << "manipulator.add_parameter("
 			<< "PermutationParameter('" << name << "', range(" << par.num_ << ")))" << std::endl;
@@ -121,10 +115,6 @@ public:
 		compile_command_builder_->add_define(
 			"NOARR_PARAMETER_VALUE_"s + name,
 			"{config[\""s + name + "\"]}");
-	}
-
-	void format(const char *, const multiple_choice_parameter &) const {
-		throw std::runtime_error("Multiple choice parameters are not supported");
 	}
 
 	void format(const char *name, const permutation_parameter &) {
