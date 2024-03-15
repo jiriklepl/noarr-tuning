@@ -22,8 +22,8 @@ inline constexpr end_t end;
 struct choice_t {};
 inline constexpr choice_t choice;
 
-struct value_t {};
-inline constexpr value_t value;
+struct constant_t {};
+inline constexpr constant_t constant;
 
 struct permutation_t {};
 inline constexpr permutation_t permutation;
@@ -40,14 +40,26 @@ struct interpret;
 template<class Name, class Parameter, class ...Things>
 interpret(name_holder<Name>, Parameter, Things&&...) -> interpret<Name, Parameter, Things...>;
 
-template<class Name, class T> 
-interpret(name_holder<Name>, range_t, T &&) -> interpret<Name, range_t, std::remove_cvref_t<T>, std::remove_cvref_t<T>, std::remove_cvref_t<T>>;
-
 template<class Name, class T>
-interpret(name_holder<Name>, range_t, T &&, T &&) -> interpret<Name, range_t, std::remove_cvref_t<T>, std::remove_cvref_t<T>, std::remove_cvref_t<T>>;
+interpret(name_holder<Name>, range_t, T &&end) -> interpret<Name, range_t, std::integral_constant<std::remove_cvref_t<T>, 0>, std::remove_cvref_t<T>, std::integral_constant<std::remove_cvref_t<T>, 1>>;
 
-template<class Name, class T>
-interpret(name_holder<Name>, range_t, T &&, T &&, T &&) -> interpret<Name, range_t, std::remove_cvref_t<T>, std::remove_cvref_t<T>, std::remove_cvref_t<T>>;
+template<class Name, class T, T Value>
+interpret(name_holder<Name>, range_t, const std::integral_constant<T, Value> &end) -> interpret<Name, range_t, std::integral_constant<T, 0>, std::integral_constant<T, Value>, std::integral_constant<T, 1>>;
+
+template<class Name, std::size_t Value>
+interpret(name_holder<Name>, range_t, const noarr::lit_t<Value> &end) -> interpret<Name, range_t, noarr::lit_t<0>, noarr::lit_t<Value>, noarr::lit_t<1>>;
+
+template<class Name, class Start, class End>
+interpret(name_holder<Name>, range_t, Start &&, End &&) -> interpret<Name, range_t, std::remove_cvref_t<Start>, std::remove_cvref_t<End>, Start>;
+
+template<class Name, class Start, Start Value, class End>
+interpret(name_holder<Name>, range_t, const std::integral_constant<Start, Value> &, End &&) -> interpret<Name, range_t, std::integral_constant<Start, Value>, std::remove_cvref_t<End>, Start>;
+
+template<class Name, std::size_t Value, class End>
+interpret(name_holder<Name>, range_t, const noarr::lit_t<Value> &, End &&) -> interpret<Name, range_t, noarr::lit_t<Value>, std::remove_cvref_t<End>, std::size_t>;
+
+template<class Name, class Start, class End, class Step>
+interpret(name_holder<Name>, range_t, Start &&, End &&, Step &&) -> interpret<Name, range_t, std::remove_cvref_t<Start>, std::remove_cvref_t<End>, std::remove_cvref_t<Step>>;
 
 #ifdef NOARR_TUNE
 
@@ -129,11 +141,11 @@ struct interpret<Name, range_t, Start, End, Step> : flexible_contain<Start, End,
 
 	template<class T>
 	constexpr interpret(name_holder<Name>, range_t, T &&end)
-		: flexible_contain<std::remove_cvref_t<T>, std::remove_cvref_t<T>, std::remove_cvref_t<T>>(0, std::forward<T>(end), 1) {}
+		: flexible_contain<Start, End, Step>(Start(), std::forward<T>(end), Step()) {}
 
-	template<class Start_, class End_, class Step_>
+	template<class Start_, class End_, class Step_ = Step>
 	constexpr interpret(name_holder<Name>, range_t, Start_ &&begin, End_ &&end, Step_ &&step = (Step)1)
-		: flexible_contain<Start, End, Step>(std::forward<Start>(begin), std::forward<End>(end), std::forward<Step>(step)) {}
+		: flexible_contain<Start, End, Step>(std::forward<Start_>(begin), std::forward<End_>(end), std::forward<Step_>(step)) {}
 
 	constexpr decltype(auto) operator*() const noexcept {
 		return this->template get<0>();
@@ -235,9 +247,9 @@ struct interpret<Name, range_t, Start, End, Step> : flexible_contain<Start> {
 
 	template<class T>
 	constexpr interpret(name_holder<Name>, range_t, T &&)
-		: flexible_contain<Start>((Start)0) {}
+		: flexible_contain<Start>(Start{}) {}
 
-	template<class Start_, class End_, class Step_>
+	template<class Start_, class End_, class Step_ = Step>
 	constexpr interpret(name_holder<Name>, range_t, Start_ &&begin, End_ &&, Step_ && = (Step)1)
 		: flexible_contain<Start>(std::forward<Start_>(begin)) {}
 
@@ -340,11 +352,11 @@ struct interpret<Name, permutation_t, Choices...> : flexible_contain<Choices...>
 };
 
 template<class Name, class Value>
-struct interpret<Name, value_t, Value> : flexible_contain<Value>  {
+struct interpret<Name, constant_t, Value> : flexible_contain<Value>  {
 	using name = Name;
 
 	template<class T>
-	constexpr interpret(name_holder<Name>, value_t, T &&value)
+	constexpr interpret(name_holder<Name>, constant_t, T &&value)
 		: flexible_contain<Value>(std::forward<T>(value)) {}
 
 	constexpr decltype(auto) operator*() const noexcept {
