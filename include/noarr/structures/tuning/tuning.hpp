@@ -134,7 +134,6 @@ private:
 	static constexpr auto categories_ = category_parameter(sizeof...(Choices));
 };
 
-// TODO: add version with constants
 template<class Name, class Start, class End, class Step> requires (!IsDefined<Name>)
 struct interpret<Name, range_t, Start, End, Step> : flexible_contain<Start, End, Step> {
 	using name = Name;
@@ -240,7 +239,6 @@ struct interpret<Name, choice_t, Choice, Choices...> : flexible_contain<Choice> 
 	constexpr void generate(Ts &&...) const noexcept {}
 };
 
-// TODO: add version with constants
 template<class Name, class Start, class End, class Step> requires (!IsDefined<Name>)
 struct interpret<Name, range_t, Start, End, Step> : flexible_contain<Start> {
 	using name = Name;
