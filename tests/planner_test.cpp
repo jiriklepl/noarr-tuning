@@ -73,8 +73,8 @@ TEST_CASE("Planner trivial", "[planner]") {
 	});
 
 	auto cba_plan = planner(a, b, c).template for_sections<'x', 'z'>([&i](auto inner) {
-		auto z = get_index<'z'>(inner.state());
-		auto x = get_index<'x'>(inner.state());
+		auto z = get_index<'z'>(inner);
+		auto x = get_index<'x'>(inner);
 
 		REQUIRE(z < 40);
 		REQUIRE(x < 20);
@@ -178,18 +178,22 @@ TEST_CASE("Planner trivial functional", "[planner]") {
 		inner();
 	});
 
-	auto cba_plan = planner(a, b, c) ^ for_sections<'x', 'z'>([&i](auto inner) {
+	std::size_t j = 0;
+
+	auto cba_plan = planner(a, b, c) ^ for_dims<'x', 'z'>([&i, &j](auto inner) {
 		auto z = get_index<'z'>(inner.state());
 		auto x = get_index<'x'>(inner.state());
 
 		REQUIRE(z < 40);
 		REQUIRE(x < 20);
 
-		(inner ^ for_each_elem([&i](auto &&a, auto &&b, auto &&c) {
-		c -= a * b;
-		i -= 2;
-		}))();
-	}) ^ reorder<'x', 'z', 'y'>();
+		inner ^ for_each_elem([&i, &j](auto state, auto &&a, auto &&b, auto &&c) {
+			auto [x, y, z] = get_indices<'x', 'y', 'z'>(state);
+			c -= a * b;
+			i -= 2;
+			REQUIRE(j++ == (x * 40 + z) * 30 + y);
+		}) | planner_execute();
+	});
 
 	auto c_check_plan = planner(c) ^ for_each_elem([](auto &&c) {
 		REQUIRE(c == 2);
@@ -200,8 +204,8 @@ TEST_CASE("Planner trivial functional", "[planner]") {
 	a_plan();
 	b_plan();
 	c_plan();
-	(abc_plan ^ reorder<'z', 'x', 'y'>())();
-	(abc_plan ^ reorder<'x', 'z', 'y'>())();
+	abc_plan ^ reorder<'z', 'x', 'y'>() | planner_execute();
+	abc_plan ^ reorder<'x', 'z', 'y'>() | planner_execute();
 	c_check_plan();
 
 	REQUIRE(i == 2*20*30*40);
