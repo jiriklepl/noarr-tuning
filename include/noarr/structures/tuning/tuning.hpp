@@ -122,29 +122,39 @@ struct interpret<Name, choice_t, Choices...> : flexible_contain<Choices...>  {
 
 	template<class TunerFormatter>
 	constexpr decltype(auto) generate(TunerFormatter &formatter) const {
-		return formatter.format(Name::name, categories_);
+		return formatter.format(Name::name, categories);
 	}
 
 	template<class TunerFormatter, class Constraint>
 	constexpr decltype(auto) generate(TunerFormatter &formatter, Constraint &&constraint) const {
-		return formatter.format(Name::name, categories_, std::forward<Constraint>(constraint));
+		return formatter.format(Name::name, categories, std::forward<Constraint>(constraint));
 	}
 
 private:
-	static constexpr auto categories_ = category_parameter(sizeof...(Choices));
+	static constexpr auto categories = category_parameter(sizeof...(Choices));
 };
 
+template<class T>
+constexpr T init_value(auto &&value) requires requires() { T{std::forward<decltype(value)>(value)}; } {
+	return {std::forward<decltype(value)>(value)};
+}
+
+template<class T>
+constexpr T init_value(auto &&value) {
+	return {};
+}
+
 template<class Name, class Start, class End, class Step> requires (!IsDefined<Name>)
-struct interpret<Name, range_t, Start, End, Step> : flexible_contain<Start, End, Step> {
+struct interpret<Name, range_t, Start, End, Step> : flexible_contain<Start> {
 	using name = Name;
 
 	template<class T>
 	constexpr interpret(name_holder<Name>, range_t, T &&end)
-		: flexible_contain<Start, End, Step>(Start(), std::forward<T>(end), Step()) {}
+		: flexible_contain<Start>(init_value<Start>(0)), range_(init_value<Start>(0), std::forward<T>(end), init_value<Step>(1)) {}
 
 	template<class Start_, class End_, class Step_ = Step>
-	constexpr interpret(name_holder<Name>, range_t, Start_ &&begin, End_ &&end, Step_ &&step = (Step)1)
-		: flexible_contain<Start, End, Step>(std::forward<Start_>(begin), std::forward<End_>(end), std::forward<Step_>(step)) {}
+	constexpr interpret(name_holder<Name>, range_t, Start_ &&begin, End_ &&end, Step_ &&step = init_value<Step>(1))
+		: flexible_contain<Start>(std::forward<Start_>(begin)), range_(std::forward<Start_>(begin), std::forward<End_>(end), std::forward<Step_>(step)) {}
 
 	constexpr decltype(auto) operator*() const noexcept {
 		return this->template get<0>();
@@ -156,13 +166,16 @@ struct interpret<Name, range_t, Start, End, Step> : flexible_contain<Start, End,
 
 	template<class TunerFormatter>	
 	constexpr decltype(auto) generate(TunerFormatter &formatter) const {
-		return formatter.format(Name::name, range_parameter(this->template get<0>(), this->template get<1>(), this->template get<2>()));
+		return formatter.format(Name::name, range_);
 	}
 
 	template<class TunerFormatter, class Constraint>
 	constexpr decltype(auto) generate(TunerFormatter &formatter, Constraint &&constraint) const {
-		return formatter.format(Name::name, range_parameter(this->template get<0>(), this->template get<1>(), this->template get<2>()), std::forward<Constraint>(constraint));
+		return formatter.format(Name::name, range_, std::forward<Constraint>(constraint));
 	}
+
+private:
+	range_parameter<Start, End, Step> range_;
 };
 
 template<class Name, class ...Choices> requires (!IsDefined<Name>)
@@ -183,16 +196,16 @@ struct interpret<Name, permutation_t, Choices...> : flexible_contain<Choices...>
 
 	template<class TunerFormatter>
 	constexpr decltype(auto) generate(TunerFormatter &formatter) const {
-		return formatter.format(Name::name, permutation_);
+		return formatter.format(Name::name, permutation);
 	}
 
 	template<class TunerFormatter, class Constraint>
 	constexpr decltype(auto) generate(TunerFormatter &formatter, Constraint &constraint) const {
-		return formatter.format(Name::name, permutation_, constraint);
+		return formatter.format(Name::name, permutation, constraint);
 	}
 
 private:
-	static constexpr auto permutation_ = permutation_parameter(sizeof...(Choices));
+	static constexpr auto permutation = permutation_parameter(sizeof...(Choices));
 };
 
 #else
@@ -367,8 +380,11 @@ struct interpret<Name, constant_t, Value> : flexible_contain<Value>  {
 
 	template<class TunerFormatter, class ...Ts>
 	constexpr void generate(TunerFormatter &formatter, Ts &&...) const noexcept {
-		formatter.format(Name::name, category_parameter(1));
+		formatter.format(Name::name, categories);
 	}
+
+private:
+	static constexpr auto categories = category_parameter(1);
 };
 
 
