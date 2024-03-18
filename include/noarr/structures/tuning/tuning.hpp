@@ -14,25 +14,28 @@ template<class ...>
 struct name_holder {};
 
 struct begin_t {};
-inline constexpr begin_t begin;
+constexpr begin_t begin;
 
 struct end_t {};
-inline constexpr end_t end;
+constexpr end_t end;
 
 struct choice_t {};
-inline constexpr choice_t choice;
+constexpr choice_t choice;
 
 struct constant_t {};
-inline constexpr constant_t constant;
+constexpr constant_t constant;
 
 struct permutation_t {};
-inline constexpr permutation_t permutation;
+constexpr permutation_t permutation;
 
 struct mapped_permutation_t {};
-inline constexpr mapped_permutation_t mapped_permutation;
+constexpr mapped_permutation_t mapped_permutation;
 
 struct range_t {};
-inline constexpr range_t range;
+constexpr range_t range;
+
+struct mapped_range_t {};
+constexpr mapped_range_t mapped_range;
 
 template<class ValueType>
 concept IsDefined = requires{ ValueType::value; };
@@ -63,6 +66,27 @@ interpret(name_holder<Name>, range_t, const noarr::lit_t<Value> &, End &&) -> in
 
 template<class Name, class Start, class End, class Step>
 interpret(name_holder<Name>, range_t, Start &&, End &&, Step &&) -> interpret<Name, range_t, std::remove_cvref_t<Start>, std::remove_cvref_t<End>, std::remove_cvref_t<Step>>;
+
+template<class Name, class Map, class T>
+interpret(name_holder<Name>, mapped_range_t, Map &&, T &&end) -> interpret<Name, mapped_range_t, std::remove_cvref_t<Map>, std::integral_constant<std::remove_cvref_t<T>, 0>, std::remove_cvref_t<T>, std::integral_constant<std::remove_cvref_t<T>, 1>>;
+
+template<class Name, class Map, class T, T Value>
+interpret(name_holder<Name>, mapped_range_t, Map &&, const std::integral_constant<T, Value> &end) -> interpret<Name, mapped_range_t, std::remove_cvref_t<Map>, std::integral_constant<T, 0>, std::integral_constant<T, Value>, std::integral_constant<T, 1>>;
+
+template<class Name, class Map, std::size_t Value>
+interpret(name_holder<Name>, mapped_range_t, Map &&, const noarr::lit_t<Value> &end) -> interpret<Name, mapped_range_t, std::remove_cvref_t<Map>, noarr::lit_t<0>, noarr::lit_t<Value>, noarr::lit_t<1>>;
+
+template<class Name, class Map, class Start, class End>
+interpret(name_holder<Name>, mapped_range_t, Map &&, Start &&, End &&) -> interpret<Name, mapped_range_t, std::remove_cvref_t<Map>, std::remove_cvref_t<Start>, std::remove_cvref_t<End>, Start>;
+
+template<class Name, class Map, class Start, Start Value, class End>
+interpret(name_holder<Name>, mapped_range_t, Map &&, const std::integral_constant<Start, Value> &, End &&) -> interpret<Name, mapped_range_t, std::remove_cvref_t<Map>, std::integral_constant<Start, Value>, std::remove_cvref_t<End>, Start>;
+
+template<class Name, class Map, std::size_t Value, class End>
+interpret(name_holder<Name>, mapped_range_t, Map &&, const noarr::lit_t<Value> &, End &&) -> interpret<Name, mapped_range_t, std::remove_cvref_t<Map>, noarr::lit_t<Value>, std::remove_cvref_t<End>, std::size_t>;
+
+template<class Name, class Map, class Start, class End, class Step>
+interpret(name_holder<Name>, mapped_range_t, Map &&, Start &&, End &&, Step &&) -> interpret<Name, mapped_range_t, std::remove_cvref_t<Map>, std::remove_cvref_t<Start>, std::remove_cvref_t<End>, std::remove_cvref_t<Step>>;
 
 #ifdef NOARR_TUNE
 
@@ -181,6 +205,40 @@ private:
 	range_parameter<Start, End, Step> range_;
 };
 
+template<class Name, class Map, class Start, class End, class Step> requires (!IsDefined<Name>)
+struct interpret<Name, mapped_range_t, Map, Start, End, Step> : flexible_contain<Map, Start> {
+	using name = Name;
+
+	template<class Map_, class End_>
+	constexpr interpret(name_holder<Name>, mapped_range_t, Map_ &&map, End_ &&end)
+		: flexible_contain<Map, Start>(std::forward<Map_>(map), init_value<Start>(0)), range_(init_value<Start>(0), std::forward<End_>(end), init_value<Step>(1)) {}
+
+	template<class Map_, class Start_, class End_, class Step_ = Step>
+	constexpr interpret(name_holder<Name>, mapped_range_t, Map_ &&map, Start_ &&begin, End_ &&end, Step_ &&step = init_value<Step>(1))
+		: flexible_contain<Map, Start>(std::forward<Map_>(map), std::forward<Start_>(begin)), range_(std::forward<Start_>(begin), std::forward<End_>(end), std::forward<Step_>(step)) {}
+
+	constexpr decltype(auto) operator*() const {
+		return this->template get<0>()(this->template get<1>());
+	}
+	
+	constexpr decltype(auto) operator->() const noexcept {
+		return &**this;
+	}
+
+	template<class TunerFormatter>
+	constexpr decltype(auto) generate(TunerFormatter &formatter) const {
+		return formatter.format(Name::name, range_);
+	}
+
+	template<class TunerFormatter, class Constraint>
+	constexpr decltype(auto) generate(TunerFormatter &formatter, Constraint &constraint) const {
+		return formatter.format(Name::name, range_, constraint);
+	}
+
+private:
+	range_parameter<Start, End, Step> range_;
+};
+
 template<class Name, class ...Choices> requires (!IsDefined<Name>)
 struct interpret<Name, permutation_t, Choices...> : flexible_contain<Choices...>  {
 	using name = Name;
@@ -219,7 +277,7 @@ struct interpret<Name, mapped_permutation_t, Map, Choices...> : flexible_contain
 	constexpr interpret(name_holder<Name>, mapped_permutation_t, T &&map, Ts &&...choices)
 		: flexible_contain<Map, Choices...>(std::forward<T>(map), std::forward<Ts>(choices)...) {}
 
-	constexpr auto operator*() const {
+	constexpr decltype(auto) operator*() const {
 		return map(std::index_sequence_for<Choices...>());
 	}
 	
@@ -314,6 +372,30 @@ struct interpret<Name, range_t, Start, End, Step> : flexible_contain<Start> {
 	constexpr void generate(Ts &&...) const noexcept {}
 };
 
+template<class Name, class Map, class Start, class End, class Step> requires (!IsDefined<Name>)
+struct interpret<Name, mapped_range_t, Map, Start, End, Step> : flexible_contain<Map, Start> {
+	using name = Name;
+
+	template<class Map_, class End_>
+	constexpr interpret(name_holder<Name>, mapped_range_t, Map_ &&map, End_ &&)
+		: flexible_contain<Map, Start>(std::forward<Map_>(map), Start{}) {}
+
+	template<class Map_, class Start_, class End_, class Step_ = Step>
+	constexpr interpret(name_holder<Name>, mapped_range_t, Map_ &&map, Start_ &&begin, End_ &&, Step_ && = (Step)1)
+		: flexible_contain<Map, Start>(std::forward<Map_>(map), std::forward<Start_>(begin)) {}
+
+	constexpr decltype(auto) operator*() const {
+		return this->template get<0>()(this->template get<1>());
+	}
+	
+	constexpr decltype(auto) operator->() const noexcept {
+		return &**this;
+	}
+
+	template<class ...Ts>
+	constexpr void generate(Ts &&...) const noexcept {}
+};
+
 template<class Name, class ...Choices> requires (!IsDefined<Name>)
 struct interpret<Name, permutation_t, Choices...> : flexible_contain<Choices...>  {
 	using name = Name;
@@ -342,7 +424,7 @@ struct interpret<Name, mapped_permutation_t, Map, Choices...> : flexible_contain
 	constexpr interpret(name_holder<Name>, mapped_permutation_t, T &&map, Ts &&...choices)
 		: flexible_contain<Map, Choices...>(std::forward<T>(map), std::forward<Ts>(choices)...) {}
 
-	constexpr auto operator*() const {
+	constexpr decltype(auto) operator*() const {
 		return map(std::index_sequence_for<Choices...>());
 	}
 	
@@ -406,6 +488,30 @@ struct interpret<Name, range_t, Start, End, Step> {
 	constexpr void generate(Ts &&...) const noexcept { }
 };
 
+template<class Name, class Map, class Start, class End, class Step> requires (IsDefined<Name>)
+struct interpret<Name, mapped_range_t, Map, Start, End, Step> : flexible_contain<Map> {
+	using name = Name;
+
+	template<class Map_, class End_>
+	constexpr interpret(name_holder<Name>, mapped_range_t, Map_ &&map, End_ &&)
+		: flexible_contain<Map>(std::forward<Map_>(map)) {}
+
+	template<class Map_, class Start_, class End_, class Step_ = Step>
+	constexpr interpret(name_holder<Name>, mapped_range_t, Map_ &&map, Start_ &&begin, End_ &&, Step_ && = (Step)1)
+		: flexible_contain<Map>(std::forward<Map_>(map)) {}
+
+	constexpr decltype(auto) operator*() const {
+		return this->template get<0>()(Name::value.template get<0>());
+	}
+	
+	constexpr decltype(auto) operator->() const noexcept {
+		return &**this;
+	}
+
+	template<class ...Ts>
+	constexpr void generate(Ts &&...) const noexcept {}
+};
+
 template<class Name, class ...Choices> requires (IsDefined<Name>)
 struct interpret<Name, permutation_t, Choices...> : flexible_contain<Choices...>  {
 	using name = Name;
@@ -434,7 +540,7 @@ struct interpret<Name, mapped_permutation_t, Map, Choices...> : flexible_contain
 	constexpr interpret(name_holder<Name>, mapped_permutation_t, T &&map, Ts &&...choices)
 		: flexible_contain<Map, Choices...>(std::forward<T>(map), std::forward<Ts>(choices)...) {}
 
-	constexpr auto operator*() const {
+	constexpr decltype(auto) operator*() const {
 		return map(std::index_sequence_for<Choices...>());
 	}
 	
