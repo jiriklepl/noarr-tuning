@@ -43,6 +43,11 @@ concept IsDefined = requires{ ValueType::value; };
 template<class Name, class Parameter, class ...Things>
 struct interpret;
 
+template<auto ...Values>
+constexpr auto collect_values() {
+	return flexible_contain<std::integral_constant<decltype(Values), Values>...>();
+}
+
 template<class Name, class Parameter, class ...Things>
 interpret(name_holder<Name>, Parameter, Things&&...) -> interpret<Name, Parameter, Things...>;
 

@@ -18,12 +18,12 @@
 	static_assert(true, "NOARR_TUNE_BEGIN() must be called at the beginning of the tuning block.")
 
 #define NOARR_TUNE_PAR(parameter_name, ...) \
-	struct NOARR_PARAMETER(parameter_name) { static constexpr const char *name= #parameter_name; static constexpr auto value_ = NOARR_PARAMETER(VALUE_ ## parameter_name); static constexpr auto value = noarr::flexible_contain<std::integral_constant<decltype(value_), value_>>(); }; \
+	struct NOARR_PARAMETER(parameter_name) { static constexpr const char *name= #parameter_name; static constexpr auto value = (::noarr::tuning::collect_values<NOARR_PARAMETER(VALUE_ ## parameter_name)>()); }; \
 	decltype(::noarr::tuning::interpret(::noarr::tuning::name_holder<NOARR_PARAMETER(parameter_name)>(), __VA_ARGS__)) \
 	parameter_name{::noarr::tuning::name_holder<NOARR_PARAMETER(parameter_name)>(), __VA_ARGS__} \
 
 #define NOARR_TUNE_CONSTRAINED_PAR(parameter_name, constraint, ...) \
-	struct NOARR_PARAMETER(parameter_name) { static constexpr const char *name= #parameter_name; static constexpr auto value_ = NOARR_PARAMETER(VALUE_ ## parameter_name); static constexpr auto value = noarr::flexible_contain<std::integral_constant<decltype(value_), value_>>(); }; \
+	struct NOARR_PARAMETER(parameter_name) { static constexpr const char *name= #parameter_name; static constexpr auto value = (::noarr::tuning::collect_values<NOARR_PARAMETER(VALUE_ ## parameter_name)>()); }; \
 	decltype(::noarr::tuning::interpret(::noarr::tuning::name_holder<NOARR_PARAMETER(parameter_name)>(), __VA_ARGS__)) \
 	parameter_name{::noarr::tuning::name_holder<NOARR_PARAMETER(parameter_name)>(), __VA_ARGS__} \
 
