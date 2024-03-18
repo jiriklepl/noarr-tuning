@@ -28,6 +28,9 @@ inline constexpr constant_t constant;
 struct permutation_t {};
 inline constexpr permutation_t permutation;
 
+struct mapped_permutation_t {};
+inline constexpr mapped_permutation_t mapped_permutation;
+
 struct range_t {};
 inline constexpr range_t range;
 
@@ -208,6 +211,41 @@ private:
 	static constexpr auto permutation = permutation_parameter(sizeof...(Choices));
 };
 
+template<class Name, class Map, class ...Choices> requires (!IsDefined<Name>)
+struct interpret<Name, mapped_permutation_t, Map, Choices...> : flexible_contain<Map, Choices...>  {
+	using name = Name;
+
+	template<class T, class ...Ts>
+	constexpr interpret(name_holder<Name>, mapped_permutation_t, T &&map, Ts &&...choices)
+		: flexible_contain<Map, Choices...>(std::forward<T>(map), std::forward<Ts>(choices)...) {}
+
+	constexpr auto operator*() const {
+		return map(std::index_sequence_for<Choices...>());
+	}
+	
+	constexpr decltype(auto) operator->() const noexcept {
+		return &**this;
+	}
+
+	template<class TunerFormatter>
+	constexpr decltype(auto) generate(TunerFormatter &formatter) const {
+		return formatter.format(Name::name, permutation);
+	}
+
+	template<class TunerFormatter, class Constraint>
+	constexpr decltype(auto) generate(TunerFormatter &formatter, Constraint &constraint) const {
+		return formatter.format(Name::name, permutation, constraint);
+	}
+
+private:
+	template<std::size_t ...Is>
+	constexpr decltype(auto) map(std::index_sequence<Is...>) const {
+		return this->template get<0>()(this->template get<Is + 1>()...);
+	}
+
+	static constexpr auto permutation = permutation_parameter(sizeof...(Choices));
+};
+
 #else
 
 template<class Name, class ...Args> requires (!IsDefined<Name>)
@@ -296,6 +334,32 @@ struct interpret<Name, permutation_t, Choices...> : flexible_contain<Choices...>
 	constexpr void generate(Ts &&...) const noexcept {}
 };
 
+template<class Name, class Map, class ...Choices> requires (!IsDefined<Name>)
+struct interpret<Name, mapped_permutation_t, Map, Choices...> : flexible_contain<Map, Choices...>  {
+	using name = Name;
+
+	template<class T, class ...Ts>
+	constexpr interpret(name_holder<Name>, mapped_permutation_t, T &&map, Ts &&...choices)
+		: flexible_contain<Map, Choices...>(std::forward<T>(map), std::forward<Ts>(choices)...) {}
+
+	constexpr auto operator*() const {
+		return map(std::index_sequence_for<Choices...>());
+	}
+	
+	constexpr decltype(auto) operator->() const noexcept {
+		return &**this;
+	}
+
+	template<class ...Ts>
+	constexpr void generate(Ts &&...) const noexcept {}
+
+private:
+	template<std::size_t ...Is>
+	constexpr decltype(auto) map(std::index_sequence<Is...>) const {
+		return this->template get<0>()(this->template get<Is + 1>()...);
+	}
+};
+
 #endif // NOARR_TUNE
 
 template<class Name, class ...Choices> requires (IsDefined<Name>)
@@ -360,6 +424,32 @@ struct interpret<Name, permutation_t, Choices...> : flexible_contain<Choices...>
 
 	template<class ...Ts>
 	constexpr void generate(Ts &&...) const noexcept { }
+};
+
+template<class Name, class Map, class ...Choices> requires (IsDefined<Name>)
+struct interpret<Name, mapped_permutation_t, Map, Choices...> : flexible_contain<Map, Choices...>  {
+	using name = Name;
+
+	template<class T, class ...Ts>
+	constexpr interpret(name_holder<Name>, mapped_permutation_t, T &&map, Ts &&...choices)
+		: flexible_contain<Map, Choices...>(std::forward<T>(map), std::forward<Ts>(choices)...) {}
+
+	constexpr auto operator*() const {
+		return map(std::index_sequence_for<Choices...>());
+	}
+	
+	constexpr decltype(auto) operator->() const noexcept {
+		return &**this;
+	}
+
+	template<class ...Ts>
+	constexpr void generate(Ts &&...) const noexcept {}
+
+private:
+	template<std::size_t ...Is>
+	constexpr decltype(auto) map(std::index_sequence<Is...>) const {
+		return this->template get<0>()(this->template get<Is + 1>()...);
+	}
 };
 
 template<class Name, class Value>
