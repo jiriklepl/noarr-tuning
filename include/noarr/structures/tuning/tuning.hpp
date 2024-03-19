@@ -579,13 +579,8 @@ struct interpret<Name, constant_t, Value> : flexible_contain<Value>  {
 		return &**this;
 	}
 
-	template<class TunerFormatter, class ...Ts>
-	constexpr void generate(TunerFormatter &formatter, Ts &&...) const noexcept {
-		formatter.format(Name::name, categories);
-	}
-
-private:
-	static constexpr auto categories = category_parameter(1);
+	template<class ...Ts>
+	constexpr void generate(Ts &&...) const noexcept { }
 };
 
 
