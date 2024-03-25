@@ -9,7 +9,7 @@
 namespace noarr::tuning {
 
 template<class T>
-concept IsRunCommandBuilder = requires(T builder, const char *long_name, char short_name, const char *value, std::ostream &out) {
+concept IsRunCommandBuilder = requires(std::remove_cvref_t<T> builder, const char *long_name, char short_name, const char *value, std::ostream &out) {
 	{ builder.add_operand(value) } -> std::same_as<void>;
 	{ builder.add_option(long_name, value) } -> std::same_as<void>;
 	{ builder.add_option(long_name) } -> std::same_as<void>;
@@ -19,7 +19,7 @@ concept IsRunCommandBuilder = requires(T builder, const char *long_name, char sh
 	{ builder.to_string() } -> std::same_as<std::string>;
 };
 
-constexpr std::ostream &operator<<(std::ostream &out, IsRunCommandBuilder auto &&builder) {
+constexpr std::ostream &operator<<(std::ostream &out, const IsRunCommandBuilder auto &builder) {
 	return builder.print(out);
 }
 
@@ -75,7 +75,7 @@ static_assert(IsRunCommandBuilder<direct_run_command_builder>);
 
 
 template<class T>
-concept IsCompileCommandBuilder = requires(T builder, const char *include, const char *define, std::ostream &out) {
+concept IsCompileCommandBuilder = requires(std::remove_cvref_t<T> builder, const char *include, const char *define, std::ostream &out) {
 	{ builder.add_include(include) } -> std::same_as<void>;
 	{ builder.add_define(define) } -> std::same_as<void>;
 	{ builder.add_define(define, define) } -> std::same_as<void>;
@@ -83,7 +83,7 @@ concept IsCompileCommandBuilder = requires(T builder, const char *include, const
 	{ builder.to_string() } -> std::same_as<std::string>;
 };
 
-constexpr std::ostream &operator<<(std::ostream &out, IsCompileCommandBuilder auto &&builder) {
+constexpr std::ostream &operator<<(std::ostream &out, const IsCompileCommandBuilder auto &builder) {
 	return builder.print(out);
 }
 
@@ -145,7 +145,7 @@ public:
 		flags_ += " -D";
 		flags_ += define;
 	}
-	
+
 	void add_define(std::string_view define, std::string_view value) {
 		flags_ += " -D";
 		flags_ += define;

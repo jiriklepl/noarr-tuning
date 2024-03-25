@@ -67,12 +67,12 @@ struct tuning {
 		noarr::into_blocks<'k', 'K', 'k'>(*block_size),
 		noarr::bcast<'K'>(noarr::lit<1>));
 
-	NOARR_TUNE_PAR(block_order, noarr::tuning::permutation,
-		std::integral_constant<char,'I'>(),
-		std::integral_constant<char,'J'>(),
-		std::integral_constant<char,'K'>(),
-		std::integral_constant<char,'i'>(),
-		std::integral_constant<char,'j'>());
+	NOARR_TUNE_PAR(block_order, noarr::tuning::mapped_permutation, [](auto ...pars) requires (sizeof...(pars) == 5) { return (... ^ pars); },
+		noarr::hoist<'I'>(),
+		noarr::hoist<'J'>(),
+		noarr::hoist<'K'>(),
+		noarr::hoist<'i'>(),
+		noarr::hoist<'j'>());
 
 	// TODO: RUNTIME PARAMETERS
 	// TODO: AUTOTUNER PARAMETERS
@@ -87,7 +87,7 @@ struct tuning {
 		SPECIFIC_GET_PAR(block_k),
 		SPECIFIC_GET_PAR(block_order)
 	);
-} T;
+} tuning;
 
 constexpr auto reset(auto C) {
 	return [=](auto state) {
@@ -114,13 +114,9 @@ void run_matmul(auto ta, auto tb, auto tc, num_t *pa, num_t *pb, num_t *pc) {
 
 	noarr::traverser(C).for_each(reset(C));
 
-	auto trav = noarr::traverser(A, B, C).order(*T.block_i ^ *T.block_j ^ *T.block_k);
+	auto trav = noarr::traverser(A, B, C).order(*tuning.block_i ^ *tuning.block_j ^ *tuning.block_k ^ *tuning.block_order);
 
-	// trav.template for_dims<'I', J', 'K', 'i', 'j'>(matmul(a, b, c));
-	// modified for the experiments:
-	[=]<std::size_t ...Idxs>(std::index_sequence<Idxs...>){
-		trav.template for_dims<(char)T.block_order->template get<Idxs>()...>(matmul(A, B, C));
-	}(std::make_index_sequence<std::tuple_size_v<std::remove_cvref_t<decltype(*T.block_order)>>>());
+	trav.template for_sections<'I', 'J', 'K', 'i', 'j'>(matmul(A, B, C));
 }
 
 }
@@ -134,9 +130,9 @@ int main(int argc, char **argv) {
 	std::size_t size;
 	std::istringstream(argv[2]) >> size;
 
-	auto ta = noarr::scalar<num_t>() ^ *T.a_order ^ noarr::set_length<'i', 'k'>(size, size);
-	auto tb = noarr::scalar<num_t>() ^ *T.b_order ^ noarr::set_length<'k', 'j'>(size, size);
-	auto tc = noarr::scalar<num_t>() ^ *T.c_order ^ noarr::set_length<'i', 'j'>(size, size);
+	auto ta = noarr::scalar<num_t>() ^ *tuning.a_order ^ noarr::set_length<'i', 'k'>(size, size);
+	auto tb = noarr::scalar<num_t>() ^ *tuning.b_order ^ noarr::set_length<'k', 'j'>(size, size);
+	auto tc = noarr::scalar<num_t>() ^ *tuning.c_order ^ noarr::set_length<'i', 'j'>(size, size);
 
 	std::size_t a_sz = ta | noarr::get_size();
 	std::size_t b_sz = tb | noarr::get_size();

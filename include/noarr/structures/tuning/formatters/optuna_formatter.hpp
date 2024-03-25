@@ -1,9 +1,7 @@
 #ifndef NOARR_STRUCTURES_TUNING_OPTUNA_FORMATTER_HPP
 #define NOARR_STRUCTURES_TUNING_OPTUNA_FORMATTER_HPP
 
-#include <memory>
 #include <ostream>
-#include <stdexcept>
 #include <string_view>
 #include <string>
 
@@ -19,18 +17,18 @@ template<IsCompileCommandBuilder CompileCommandBuilder, IsRunCommandBuilder RunC
 struct optuna_formatter {
 	std::ostream &out_;
 
-	std::shared_ptr<CompileCommandBuilder> compile_command_builder_;
-	std::shared_ptr<RunCommandBuilder> run_command_builder_;
+	CompileCommandBuilder compile_command_builder_;
+	RunCommandBuilder run_command_builder_;
 	std::string measure_command_;
 
-	optuna_formatter(std::ostream &out, std::shared_ptr<CompileCommandBuilder> compile_command_builder, std::shared_ptr<RunCommandBuilder> run_command_builder, std::string_view measure_command)
+	optuna_formatter(std::ostream &out, CompileCommandBuilder compile_command_builder, RunCommandBuilder run_command_builder, std::string_view measure_command)
 		: out_(out)
 
-		, compile_command_builder_(compile_command_builder)
-		, run_command_builder_(run_command_builder)
+		, compile_command_builder_(std::move(compile_command_builder))
+		, run_command_builder_(std::move(run_command_builder))
 		, measure_command_(measure_command)
 	{
-		compile_command_builder_->add_define("NOARR_PASS_BY_DEFINE");
+		compile_command_builder_.add_define("NOARR_PASS_BY_DEFINE");
 	}
 
 	void header() const {
@@ -42,6 +40,7 @@ from optuna import trial as trial_module
 import itertools
 import math
 import os
+import subprocess
 import time
 
 def application_tuner(trial: trial_module.Trial):
@@ -49,17 +48,17 @@ def application_tuner(trial: trial_module.Trial):
 	}
 
 	void footer() const {
-		out_ << "  compile_command = f'''" << *compile_command_builder_ << "'''" << std::endl;
+		out_ << "  compile_command = f'''" << compile_command_builder_ << "'''" << std::endl;
 		out_ << "  compiled = " << "os.system(compile_command)" << std::endl;
 		out_ << "  if compiled != 0:" << std::endl;
 		out_ << "    return math.inf" << std::endl;
 
-		out_ << "  run_command = '''" << *run_command_builder_ << "'''" <<std::endl;
+		out_ << "  run_command = '''" << run_command_builder_ << "'''" <<std::endl;
 		out_ << "  start = time.time()" << std::endl;
-		out_ << "  run = " << "os.system(run_command)" << std::endl;
+		out_ << "  run_result = subprocess.run(run_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)" << std::endl;
 		out_ << "  end = time.time()" << std::endl;
 
-		out_ << "  if run != 0:" << std::endl;
+		out_ << "  if run_result.returncode != 0:" << std::endl;
 		out_ << "    return math.inf" << std::endl;
 
 		out_ << "  run_time = end - start" << std::endl;
@@ -77,10 +76,10 @@ study.optimize(application_tuner, n_trials=100)
 
 		std::string name_ = "NOARR_PARAMETER_VALUE_"s;
 		name_.append(name);
-	
+
 		auto value = "{" + name_ + "}";
 
-		compile_command_builder_->add_define(name_, value);
+		compile_command_builder_.add_define(name_, value);
 		out_ << "  " << name_ << " = trial.suggest_categorical('" << name_ << "', range(" << par.num_ << "))" << std::endl;
 	}
 
@@ -92,7 +91,7 @@ study.optimize(application_tuner, n_trials=100)
 
 		auto value = "{" + name_ + "}";
 
-		compile_command_builder_->add_define(name_, value);
+		compile_command_builder_.add_define(name_, value);
 		out_ << "  " << name_ << " = trial.suggest_categorical('" << name_ << "', list(map(lambda x: ','.join(x), itertools.permutations(map(str, range(" << par.num_ << "))))))" << std::endl;
 	}
 
@@ -105,7 +104,7 @@ study.optimize(application_tuner, n_trials=100)
 
 		auto value = "{" + name_ + "}";
 
-		compile_command_builder_->add_define(name_, value);
+		compile_command_builder_.add_define(name_, value);
 		out_ << "  " << name_ << " = trial.suggest_int('" << name_ << "', " << par.min_ << ", " << par.max_ << ", " << par.step_ << ")" << std::endl;
 	}
 };

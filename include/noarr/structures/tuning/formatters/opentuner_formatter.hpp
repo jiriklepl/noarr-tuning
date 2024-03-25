@@ -2,7 +2,6 @@
 #define NOARR_STRUCTURES_TUNING_OPENTUNER_FORMATTER_HPP
 
 #include <exception>
-#include <memory>
 #include <stdexcept>
 #include <string_view>
 #include <string>
@@ -64,16 +63,15 @@ static_assert(IsTunerFormatter<opentuner_manipulator_formatter>);
 template<IsCompileCommandBuilder CompileCommandBuilder, IsRunCommandBuilder RunCommandBuilder>
 class opentuner_run_formatter {
 public:
-	opentuner_run_formatter(std::ostream &out, std::shared_ptr<CompileCommandBuilder> compile_command_builder, std::shared_ptr<RunCommandBuilder> run_command_builder, std::string_view measure_command, std::size_t indent_level = 0)
+	opentuner_run_formatter(std::ostream &out, CompileCommandBuilder compile_command_builder, RunCommandBuilder run_command_builder, std::string_view measure_command, std::size_t indent_level = 0)
 		: out_(out)
-
-		, compile_command_builder_(compile_command_builder)
-		, run_command_builder_(run_command_builder)
+		, compile_command_builder_(std::move(compile_command_builder))
+		, run_command_builder_(std::move(run_command_builder))
 		, measure_command_(measure_command)
 
 		, indent_level_(indent_level)
 	{
-		compile_command_builder_->add_define("NOARR_PASS_BY_DEFINE");
+		compile_command_builder_.add_define("NOARR_PASS_BY_DEFINE");
 	}
 
 	void header() const {
@@ -87,7 +85,7 @@ public:
 	void footer() const {
 		out_ <<
 			std::string(indent_level_ + 2, ' ') <<
-				"compile_result = self.call_program(f'''" << *compile_command_builder_ << "''')" << std::endl <<
+				"compile_result = self.call_program(f'''" << compile_command_builder_ << "''')" << std::endl <<
 
 			std::string(indent_level_ + 2, ' ') <<
 				"if not compile_result['returncode'] == 0:" << std::endl <<
@@ -95,7 +93,7 @@ public:
 				"return Result(state='ERROR', time=math.inf)" << std::endl <<
 
 			std::string(indent_level_ + 2, ' ') <<
-				"run_cmd = '" << *run_command_builder_ << '\'' << std::endl <<
+				"run_cmd = '" << run_command_builder_ << '\'' << std::endl <<
 
 			std::string(indent_level_ + 2, ' ') <<
 				"run_result = self.call_program(run_cmd)" << std::endl <<
@@ -112,7 +110,7 @@ public:
 	void format(const char *name, const category_parameter &) {
 		using std::string_literals::operator""s;
 
-		compile_command_builder_->add_define(
+		compile_command_builder_.add_define(
 			"NOARR_PARAMETER_VALUE_"s + name,
 			"{config[\""s + name + "\"]}");
 	}
@@ -120,7 +118,7 @@ public:
 	void format(const char *name, const permutation_parameter &) {
 		using std::string_literals::operator""s;
 
-		compile_command_builder_->add_define(
+		compile_command_builder_.add_define(
 			"NOARR_PARAMETER_VALUE_"s + name,
 			"{str.join(\",\", map(str, config[\""s + name + "\"]))}");
 	}
@@ -129,7 +127,7 @@ public:
 	void format(const char *name, const range_parameter<Start, End, Step> &) {
 		using std::string_literals::operator""s;
 
-		compile_command_builder_->add_define(
+		compile_command_builder_.add_define(
 			"NOARR_PARAMETER_VALUE_"s + name,
 			"{config[\""s + name + "\"]}");
 	}
@@ -137,8 +135,8 @@ public:
 private:
 	std::ostream &out_;
 
-	std::shared_ptr<CompileCommandBuilder> compile_command_builder_;
-	std::shared_ptr<RunCommandBuilder> run_command_builder_;
+	CompileCommandBuilder compile_command_builder_;
+	RunCommandBuilder run_command_builder_;
 	std::string measure_command_;
 
 	std::size_t indent_level_;
@@ -150,10 +148,10 @@ class opentuner_formatter : public combined_formatter<lazy_formatter<opentuner_m
 	using base = combined_formatter<lazy_formatter<opentuner_manipulator_formatter>, lazy_formatter<opentuner_run_formatter<CompileCommandBuilder, RunCommandBuilder>>>;
 
 public:
-	opentuner_formatter(std::ostream &out, std::shared_ptr<CompileCommandBuilder> compile_command_builder, std::shared_ptr<RunCommandBuilder> run_command_builder, const char *measure_command)
+	opentuner_formatter(std::ostream &out, CompileCommandBuilder compile_command_builder, RunCommandBuilder run_command_builder, const char *measure_command)
 		: combined_formatter<lazy_formatter<opentuner_manipulator_formatter>, lazy_formatter<opentuner_run_formatter<CompileCommandBuilder, RunCommandBuilder>>>{
 		std::make_unique<lazy_formatter<opentuner_manipulator_formatter>>(std::make_unique<opentuner_manipulator_formatter>(out, 2)),
-		std::make_unique<lazy_formatter<opentuner_run_formatter<CompileCommandBuilder, RunCommandBuilder>>>(std::make_unique<opentuner_run_formatter<CompileCommandBuilder, RunCommandBuilder>>(out, compile_command_builder, run_command_builder, measure_command, 2))},
+		std::make_unique<lazy_formatter<opentuner_run_formatter<CompileCommandBuilder, RunCommandBuilder>>>(std::make_unique<opentuner_run_formatter<CompileCommandBuilder, RunCommandBuilder>>(out, std::move(compile_command_builder), std::move(run_command_builder), measure_command, 2))},
 		out_(out)
 	{}
 

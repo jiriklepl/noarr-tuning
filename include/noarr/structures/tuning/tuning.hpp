@@ -196,7 +196,7 @@ struct interpret<Name, range_t, Start, End, Step> : flexible_contain<Start> {
 		return &**this;
 	}
 
-	template<class TunerFormatter>	
+	template<class TunerFormatter>
 	constexpr decltype(auto) generate(TunerFormatter &formatter) const {
 		return formatter.format(Name::name, range_);
 	}
@@ -225,7 +225,7 @@ struct interpret<Name, mapped_range_t, Map, Start, End, Step> : flexible_contain
 	constexpr decltype(auto) operator*() const {
 		return this->template get<0>()(this->template get<1>());
 	}
-	
+
 	constexpr decltype(auto) operator->() const noexcept {
 		return &**this;
 	}
@@ -284,10 +284,6 @@ struct interpret<Name, mapped_permutation_t, Map, Choices...> : flexible_contain
 
 	constexpr decltype(auto) operator*() const {
 		return map(std::index_sequence_for<Choices...>());
-	}
-	
-	constexpr decltype(auto) operator->() const noexcept {
-		return &**this;
 	}
 
 	template<class TunerFormatter>
@@ -392,7 +388,7 @@ struct interpret<Name, mapped_range_t, Map, Start, End, Step> : flexible_contain
 	constexpr decltype(auto) operator*() const {
 		return this->template get<0>()(this->template get<1>());
 	}
-	
+
 	constexpr decltype(auto) operator->() const noexcept {
 		return &**this;
 	}
@@ -431,10 +427,6 @@ struct interpret<Name, mapped_permutation_t, Map, Choices...> : flexible_contain
 
 	constexpr decltype(auto) operator*() const {
 		return map(std::index_sequence_for<Choices...>());
-	}
-	
-	constexpr decltype(auto) operator->() const noexcept {
-		return &**this;
 	}
 
 	template<class ...Ts>
@@ -508,7 +500,7 @@ struct interpret<Name, mapped_range_t, Map, Start, End, Step> : flexible_contain
 	constexpr decltype(auto) operator*() const {
 		return this->template get<0>()(Name::value.template get<0>());
 	}
-	
+
 	constexpr decltype(auto) operator->() const noexcept {
 		return &**this;
 	}
@@ -548,7 +540,7 @@ struct interpret<Name, mapped_permutation_t, Map, Choices...> : flexible_contain
 	constexpr decltype(auto) operator*() const {
 		return map(std::index_sequence_for<Choices...>());
 	}
-	
+
 	constexpr decltype(auto) operator->() const noexcept {
 		return &**this;
 	}
@@ -617,7 +609,7 @@ public:
 
 	constexpr definition_t(Formatter &formatter, Parameter &parameter) requires (!std::is_same_v<return_type, void>)
 		: value_(parameter.generate(formatter)) {}
-	
+
 	constexpr definition_t(Formatter &formatter, Parameter &parameter) requires (std::is_same_v<return_type, void>) {
 		parameter.generate(formatter);
 	}
