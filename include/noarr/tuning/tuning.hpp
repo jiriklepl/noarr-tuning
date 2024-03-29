@@ -549,7 +549,7 @@ template<class Formatter, class Parameter, class Constraint>
 class definition_t {
 	struct empty_t {};
 public:
-	using return_type = decltype(std::declval<Parameter>().generate((Formatter&)(std::declval<Formatter>()), (Constraint&)(std::declval<Constraint>())));
+	using return_type = decltype(std::declval<Parameter>().generate(std::declval<Formatter&>(), std::declval<Constraint&>()));
 	using value_type = std::conditional_t<!std::is_same_v<return_type, void>, return_type, empty_t> ;
 
 	constexpr definition_t(Formatter &formatter, Parameter &parameter, Constraint &&constraint) requires (!std::is_same_v<return_type, void>)
@@ -575,7 +575,7 @@ template<class Formatter, class Parameter>
 class definition_t<Formatter, Parameter, void> {
 	struct empty_t {};
 public:
-	using return_type = std::remove_reference_t<decltype(std::declval<Parameter>().generate((Formatter&)(std::declval<Formatter>())))>;
+	using return_type = std::remove_reference_t<decltype(std::declval<Parameter>().generate(std::declval<Formatter&>()))>;
 	using value_type = std::conditional_t<!std::is_same_v<return_type, void>, return_type, empty_t> ;
 
 	constexpr definition_t(Formatter &formatter, Parameter &parameter) requires (!std::is_same_v<return_type, void>)
