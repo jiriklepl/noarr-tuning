@@ -9,7 +9,6 @@
 
 namespace noarr::tuning {
 
-// TODO: access to a specific formatter
 template<class ...Formatters>
 class combined_formatter {
 public:
@@ -55,7 +54,7 @@ template<class Formatter>
 class lazy_formatter {
 public:
 	template<class ...Args>
-	lazy_formatter(Args &&...args) noexcept(noexcept(std::unique_ptr<Formatter>(std::forward<Args>(args)...)))
+	lazy_formatter(Args &&...args)
 		: formatter_(std::forward<Args>(args)...)
 	{}
 
@@ -74,13 +73,13 @@ public:
 		arg_pack(Args &&...args) : args_(std::forward<Args>(args)...) {}
 		~arg_pack() override = default;
 
-		constexpr void format(Formatter &formatter) const noexcept override {
+		constexpr void format(Formatter &formatter) const override {
 			format_impl(formatter, std::index_sequence_for<Args...>());
 		}
 
 	private:
 		template<std::size_t ...Idxs>
-		constexpr void format_impl(Formatter &formatter, std::index_sequence<Idxs...>) const noexcept {
+		constexpr void format_impl(Formatter &formatter, std::index_sequence<Idxs...>) const {
 			formatter.format(std::get<Idxs>(args_)...);
 		}
 	};
@@ -109,7 +108,7 @@ private:
 	std::vector<std::unique_ptr<arg_pack_base>> cache_;
 };
 
-// TODO: add static_asserts for lazy_formatter
+static_assert(IsTunerFormatter<lazy_formatter<combined_formatter<>>>);
 
 } // namespace noarr::tuning
 

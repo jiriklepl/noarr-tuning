@@ -7,8 +7,8 @@
 #include <string>
 
 #include "../builders.hpp"
+#include "../formatter.hpp"
 #include "../macros.hpp"
-#include "../tuning.hpp"
 
 #include "common.hpp"
 

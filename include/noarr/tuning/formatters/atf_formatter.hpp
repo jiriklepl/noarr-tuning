@@ -10,8 +10,8 @@
 #include <atf.hpp>
 
 #include "../builders.hpp"
+#include "../formatters.hpp"
 #include "../macros.hpp"
-#include "../tuning.hpp"
 
 #define NOARR_ATF_TP(name) (&*NOARR_TUNING_PARAMETER_DEFINITION(name))
 

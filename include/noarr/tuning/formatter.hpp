@@ -6,7 +6,6 @@
 
 namespace noarr::tuning {
 
-// TODO: distribution?
 struct category_parameter {
 	constexpr category_parameter(std::size_t num) noexcept : num_(num) {}
 
@@ -41,15 +40,15 @@ private:
 public:
 	constexpr predicate_parameter(Predicate predicate) noexcept : predicate_(predicate) {}
 
-	Predicate predicate() const noexcept { return predicate_; }
+	const Predicate &predicate() const noexcept { return predicate_; }
 
 	template<class T>
 	constexpr bool operator()(T &&arg) const noexcept {
 		return predicate_(arg);
 	}
 
-	constexpr Predicate get() const noexcept { return predicate_; }
-	constexpr operator Predicate() const noexcept { return predicate_; }
+	constexpr const Predicate &get() const noexcept { return predicate_; }
+	constexpr operator const Predicate &() const noexcept { return predicate_; }
 };
 
 template<class T>

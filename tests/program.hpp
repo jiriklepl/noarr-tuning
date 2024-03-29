@@ -49,7 +49,7 @@ constexpr auto k_st = noarr::vector<'k'>();
 struct tuning {
 	SPECIFIC_TUNING_BEGIN();
 
-	NOARR_TUNE_PAR(block_size, noarr::tuning::choice, 2, 4, 8, 16, 32);
+	NOARR_TUNE_PAR(block_size, noarr::tuning::mapped_range, [](auto i) { return 1 << i; }, 1, 6);
 
 	NOARR_TUNE_PAR(a_order, noarr::tuning::choice, i_st ^ k_st, k_st ^ i_st);
 	NOARR_TUNE_PAR(b_order, noarr::tuning::choice, k_st ^ j_st, j_st ^ k_st);
@@ -73,9 +73,6 @@ struct tuning {
 		noarr::hoist<'K'>(),
 		noarr::hoist<'i'>(),
 		noarr::hoist<'j'>());
-
-	// TODO: RUNTIME PARAMETERS
-	// TODO: AUTOTUNER PARAMETERS
 
 	SPECIFIC_TUNING_END(
 		SPECIFIC_GET_PAR(block_size),
