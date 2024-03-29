@@ -195,19 +195,19 @@ template<class Name, class Map, class Start, class End, class Step> requires (!I
 struct interpret<Name, mapped_range_t, Map, Start, End, Step> : std::tuple<Map, Start> {
 	using name = Name;
 
-	template<class Map_, class End_> requires std::same_as<std::remove_cvref_t<Map_>, Map>
+	template<class Map_, class End_> requires std::same_as<std::remove_cvref_t<Map_>, std::remove_cvref_t<Map>>
 	constexpr interpret(name_holder<Name>, mapped_range_t, Map_ &&map, End_ &&end)
 		: std::tuple<Map, Start>(std::forward<Map_>(map), init_value<Start>(0)), range_(init_value<Start>(0), std::forward<End_>(end), init_value<Step>(1)) {}
 
-	template<class Map_, class End_> requires std::default_initializable<Map> && (!std::same_as<std::remove_cvref_t<Map_>, Map>)
+	template<class Map_, class End_> requires std::default_initializable<Map> && (!std::same_as<std::remove_cvref_t<Map_>, std::remove_cvref_t<Map>>)
 	constexpr interpret(name_holder<Name>, mapped_range_t, Map_ &&, End_ &&end)
 		: std::tuple<Map, Start>(Map{}, init_value<Start>(0)), range_(init_value<Start>(0), std::forward<End_>(end), init_value<Step>(1)) {}
 
-	template<class Map_, class Start_, class End_, class Step_ = Step> requires std::same_as<std::remove_cvref_t<Map_>, Map>
+	template<class Map_, class Start_, class End_, class Step_ = Step> requires std::same_as<std::remove_cvref_t<Map_>, std::remove_cvref_t<Map>>
 	constexpr interpret(name_holder<Name>, mapped_range_t, Map_ &&map, Start_ &&begin, End_ &&end, Step_ &&step = init_value<Step>(1))
 		: std::tuple<Map, Start>(std::forward<Map_>(map), std::forward<Start_>(begin)), range_(std::forward<Start_>(begin), std::forward<End_>(end), std::forward<Step_>(step)) {}
 	
-	template<class Map_, class Start_, class End_, class Step_ = Step> requires std::default_initializable<Map> && (!std::same_as<std::remove_cvref_t<Map_>, Map>)
+	template<class Map_, class Start_, class End_, class Step_ = Step> requires std::default_initializable<Map> && (!std::same_as<std::remove_cvref_t<Map_>, std::remove_cvref_t<Map>>)
 	constexpr interpret(name_holder<Name>, mapped_range_t, Map_ &&, Start_ &&begin, End_ &&end, Step_ &&step = init_value<Step>(1))
 		: std::tuple<Map, Start>(Map{}, std::forward<Start_>(begin)), range_(std::forward<Start_>(begin), std::forward<End_>(end), std::forward<Step_>(step)) {}
 
@@ -259,11 +259,11 @@ template<class Name, class Map, class ...Choices> requires (!IsDefined<Name>)
 struct interpret<Name, mapped_permutation_t, Map, Choices...> : std::tuple<Map, Choices...>  {
 	using name = Name;
 
-	template<class T, class ...Ts> requires std::same_as<std::remove_cvref_t<T>, Map>
+	template<class T, class ...Ts> requires std::same_as<std::remove_cvref_t<T>, std::remove_cvref_t<Map>>
 	constexpr interpret(name_holder<Name>, mapped_permutation_t, T &&map, Ts &&...choices)
 		: std::tuple<Map, Choices...>(std::forward<T>(map), std::forward<Ts>(choices)...) {}
 
-	template<class T, class ...Ts> requires std::default_initializable<Map> && (!std::same_as<std::remove_cvref_t<T>, Map>)
+	template<class T, class ...Ts> requires std::default_initializable<Map> && (!std::same_as<std::remove_cvref_t<T>, std::remove_cvref_t<Map>>)
 	constexpr interpret(name_holder<Name>, mapped_permutation_t, T &&, Ts &&...choices)
 		: std::tuple<Map, Choices...>(Map{}, std::forward<Ts>(choices)...) {}
 
@@ -354,19 +354,19 @@ template<class Name, class Map, class Start, class End, class Step> requires (!I
 struct interpret<Name, mapped_range_t, Map, Start, End, Step> : std::tuple<Map, Start> {
 	using name = Name;
 
-	template<class Map_, class End_> requires std::same_as<std::remove_cvref_t<Map_>, Map>
+	template<class Map_, class End_> requires std::same_as<std::remove_cvref_t<Map_>, std::remove_cvref_t<Map>>
 	constexpr interpret(name_holder<Name>, mapped_range_t, Map_ &&map, End_ &&)
 		: std::tuple<Map, Start>(std::forward<Map_>(map), Start{}) {}
 
-	template<class Map_, class End_> requires std::default_initializable<Map> && (!std::same_as<std::remove_cvref_t<Map_>, Map>)
+	template<class Map_, class End_> requires std::default_initializable<Map> && (!std::same_as<std::remove_cvref_t<Map_>, std::remove_cvref_t<Map>>)
 	constexpr interpret(name_holder<Name>, mapped_range_t, Map_ &&, End_ &&)
 		: std::tuple<Map, Start>(Map{}, Start{}) {}
 
-	template<class Map_, class Start_, class End_, class Step_ = Step> requires std::same_as<std::remove_cvref_t<Map_>, Map>
+	template<class Map_, class Start_, class End_, class Step_ = Step> requires std::same_as<std::remove_cvref_t<Map_>, std::remove_cvref_t<Map>>
 	constexpr interpret(name_holder<Name>, mapped_range_t, Map_ &&map, Start_ &&begin, End_ &&, Step_ && = (Step)1)
 		: std::tuple<Map, Start>(std::forward<Map_>(map), std::forward<Start_>(begin)) {}
 
-	template<class Map_, class Start_, class End_, class Step_ = Step> requires std::default_initializable<Map> && (!std::same_as<std::remove_cvref_t<Map_>, Map>)
+	template<class Map_, class Start_, class End_, class Step_ = Step> requires std::default_initializable<Map> && (!std::same_as<std::remove_cvref_t<Map_>, std::remove_cvref_t<Map>>)
 	constexpr interpret(name_holder<Name>, mapped_range_t, Map_ &&, Start_ &&begin, End_ &&, Step_ && = (Step)1)
 		: std::tuple<Map, Start>(Map{}, std::forward<Start_>(begin)) {}
 
@@ -398,11 +398,11 @@ template<class Name, class Map, class ...Choices> requires (!IsDefined<Name>)
 struct interpret<Name, mapped_permutation_t, Map, Choices...> : std::tuple<Map, Choices...>  {
 	using name = Name;
 
-	template<class T, class ...Ts> requires std::same_as<std::remove_cvref_t<T>, Map>
+	template<class T, class ...Ts> requires std::same_as<std::remove_cvref_t<T>, std::remove_cvref_t<Map>>
 	constexpr interpret(name_holder<Name>, mapped_permutation_t, T &&map, Ts &&...choices)
 		: std::tuple<Map, Choices...>(std::forward<T>(map), std::forward<Ts>(choices)...) {}
 
-	template<class T, class ...Ts> requires std::default_initializable<Map> && (!std::same_as<std::remove_cvref_t<T>, Map>)
+	template<class T, class ...Ts> requires std::default_initializable<Map> && (!std::same_as<std::remove_cvref_t<T>, std::remove_cvref_t<Map>>)
 	constexpr interpret(name_holder<Name>, mapped_permutation_t, T &&, Ts &&...choices)
 		: std::tuple<Map, Choices...>(Map{}, std::forward<Ts>(choices)...) {}
 
@@ -462,19 +462,19 @@ template<class Name, class Map, class Start, class End, class Step> requires (Is
 struct interpret<Name, mapped_range_t, Map, Start, End, Step> : std::tuple<Map> {
 	using name = Name;
 
-	template<class Map_, class End_> requires std::same_as<std::remove_cvref_t<Map_>, Map>
+	template<class Map_, class End_> requires std::same_as<std::remove_cvref_t<Map_>, std::remove_cvref_t<Map>>
 	constexpr interpret(name_holder<Name>, mapped_range_t, Map_ &&map, End_ &&)
 		: std::tuple<Map>(std::forward<Map_>(map)) {}
 
-	template<class Map_, class End_> requires std::default_initializable<Map> && (!std::same_as<std::remove_cvref_t<Map_>, Map>)
+	template<class Map_, class End_> requires std::default_initializable<Map> && (!std::same_as<std::remove_cvref_t<Map_>, std::remove_cvref_t<Map>>)
 	constexpr interpret(name_holder<Name>, mapped_range_t, Map_ &&, End_ &&)
 		: std::tuple<Map>(Map{}) {}
 
-	template<class Map_, class Start_, class End_, class Step_ = Step> requires std::same_as<std::remove_cvref_t<Map_>, Map>
+	template<class Map_, class Start_, class End_, class Step_ = Step> requires std::same_as<std::remove_cvref_t<Map_>, std::remove_cvref_t<Map>>
 	constexpr interpret(name_holder<Name>, mapped_range_t, Map_ &&map, Start_ &&begin, End_ &&, Step_ && = (Step)1)
 		: std::tuple<Map>(std::forward<Map_>(map)) {}
 	
-	template<class Map_, class Start_, class End_, class Step_ = Step> requires std::default_initializable<Map> && (!std::same_as<std::remove_cvref_t<Map_>, Map>)
+	template<class Map_, class Start_, class End_, class Step_ = Step> requires std::default_initializable<Map> && (!std::same_as<std::remove_cvref_t<Map_>, std::remove_cvref_t<Map>>)
 	constexpr interpret(name_holder<Name>, mapped_range_t, Map_ &&, Start_ &&begin, End_ &&, Step_ && = (Step)1)
 		: std::tuple<Map>(Map{}) {}
 
@@ -506,11 +506,11 @@ template<class Name, class Map, class ...Choices> requires (IsDefined<Name>)
 struct interpret<Name, mapped_permutation_t, Map, Choices...> : std::tuple<Map, Choices...>  {
 	using name = Name;
 
-	template<class T, class ...Ts> requires std::same_as<std::remove_cvref_t<T>, Map>
+	template<class T, class ...Ts> requires std::same_as<std::remove_cvref_t<T>, std::remove_cvref_t<Map>>
 	constexpr interpret(name_holder<Name>, mapped_permutation_t, T &&map, Ts &&...choices)
 		: std::tuple<Map, Choices...>(std::forward<T>(map), std::forward<Ts>(choices)...) {}
 
-	template<class T, class ...Ts> requires std::default_initializable<Map> && (!std::same_as<std::remove_cvref_t<T>, Map>)
+	template<class T, class ...Ts> requires std::default_initializable<Map> && (!std::same_as<std::remove_cvref_t<T>, std::remove_cvref_t<Map>>)
 	constexpr interpret(name_holder<Name>, mapped_permutation_t, T &&, Ts &&...choices)
 		: std::tuple<Map, Choices...>(Map{}, std::forward<Ts>(choices)...) {}
 
