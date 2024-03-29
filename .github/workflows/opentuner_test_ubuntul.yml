@@ -4,8 +4,8 @@ on:
   push:
     paths:
     - 'include/**'
-    - 'tests/**'
-    - '.github/workflows/noarr_test_ubuntul.yml'
+    - 'tests/opentuner_test/**'
+    - '.github/workflows/opentuner_test_ubuntul.yml'
 
 jobs:
   build:
@@ -55,7 +55,7 @@ jobs:
       run: cmake .. -DCMAKE_BUILD_TYPE=${{matrix.BUILD_TYPE}} -DCMAKE_CXX_COMPILER=${{matrix.compiler}}
 
     - name: Build
-      working-directory: ${{github.workspace}}/tests
+      working-directory: ${{github.workspace}}/tests/opentuner_test
       shell: bash
       run: |
         source prepare_env.sh
