@@ -1,4 +1,4 @@
-name: Noarr test ubuntu-latest
+name: Noarr Tuning Opentuner test ubuntu-latest
 
 on:
   push:
@@ -53,7 +53,7 @@ jobs:
       shell: bash
       run: |
         source prepare_env.sh
-        cmake --build build --config ${{matrix.BUILD_TYPE}} -j
+        cmake --build build --config ${{matrix.BUILD_TYPE}} -j$(nproc)
 
     - name: Tune
       working-directory: ${{github.workspace}}/tests/opentuner_test
