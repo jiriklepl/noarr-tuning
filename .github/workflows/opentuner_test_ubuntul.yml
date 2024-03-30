@@ -40,6 +40,7 @@ jobs:
       shell: bash
       working-directory: ${{github.workspace}}/tests/opentuner_test
       run: |
+        set -e
         source prepare_env.sh
         cmake -E make_directory build
 
@@ -52,6 +53,7 @@ jobs:
       working-directory: ${{github.workspace}}/tests/opentuner_test
       shell: bash
       run: |
+        set -e
         source prepare_env.sh
         cmake --build build --config ${{matrix.BUILD_TYPE}} -j$(nproc)
 
@@ -59,6 +61,7 @@ jobs:
       working-directory: ${{github.workspace}}/tests/opentuner_test
       shell: bash
       run: |
+        set -e
         source prepare_env.sh
         cd build
         python3 <(./opentuner_test_cmake) --test-limit=20 --no-dups
