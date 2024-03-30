@@ -1,8 +1,6 @@
 #include <chrono>
 #include <iostream>
-#include <memory>
 #include <sstream>
-#include <tuple>
 #include <utility>
 #include <type_traits>
 
@@ -15,14 +13,9 @@
 
 #ifndef SPECIFIC_TUNING_BEGIN
 
-#define SPECIFIC_TUNING_BEGIN(...) struct dummy_formatter { \
-		constexpr void header() const noexcept {} \
-		constexpr void footer() const noexcept {} \
-		template<class ...Args> \
-		constexpr void format(Args&&...) const noexcept {} \
-	}; \
-	/* use dummy_formatter (for static analysis tools) */ \
-	NOARR_TUNE_BEGIN(dummy_formatter())
+#include <noarr/tuning/formatters/dummy_formatter.hpp>
+
+#define SPECIFIC_TUNING_BEGIN(...) NOARR_TUNE_BEGIN(noarr::tuning::dummy_formatter())
 
 #endif
 
