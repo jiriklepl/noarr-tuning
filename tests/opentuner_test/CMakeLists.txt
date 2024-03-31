@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.10)
 include(FetchContent)
 
 # set the project name
-project(NoarrTuningOpenTunerTest VERSION 0.20.0)
+project(NoarrTuningOpenTunerTest VERSION 0.20.0 LANGUAGES CXX)
 
 # fetch Noarr Structures
 FetchContent_Declare(
