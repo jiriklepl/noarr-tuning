@@ -86,16 +86,35 @@ public:
 			std::string(indent_level_ + 2, ' ') <<
 				"compile_result = self.call_program(f'''" << compile_command_builder_ << "''')" << std::endl <<
 
+#if defined(NOARR_TUNING_VERBOSE) && NOARR_TUNING_VERBOSE >= 1
+			std::string(indent_level_ + 2, ' ') <<
+				"log.info(f'''Compile time: {compile_result['time']}''')" << std::endl <<
+			std::string(indent_level_ + 2, ' ') <<
+				"log.info(f'''Compile returncode: {compile_result['returncode']}''')" << std::endl <<
+#endif
+
 			std::string(indent_level_ + 2, ' ') <<
 				"if not compile_result['returncode'] == 0:" << std::endl <<
 			std::string(indent_level_ + 4, ' ') <<
 				"return Result(state='ERROR', time=math.inf)" << std::endl <<
+
+#if defined(NOARR_TUNING_VERBOSE) && NOARR_TUNING_VERBOSE >= 2
+			std::string(indent_level_ + 4, ' ') <<
+				"log.info(f'''Compile stderr: {compile_result['stderr']}''')" << std::endl <<
+#endif
 
 			std::string(indent_level_ + 2, ' ') <<
 				"run_cmd = '" << run_command_builder_ << '\'' << std::endl <<
 
 			std::string(indent_level_ + 2, ' ') <<
 				"run_result = self.call_program(run_cmd)" << std::endl <<
+
+#if defined(NOARR_TUNING_VERBOSE) && NOARR_TUNING_VERBOSE >= 1
+			std::string(indent_level_ + 2, ' ') <<
+				"log.info(f'''Run time: {run_result['time']}''')" << std::endl <<
+			std::string(indent_level_ + 2, ' ') <<
+				"log.info(f'''Run returncode: {run_result['returncode']}''')" << std::endl <<
+#endif
 
 			std::string(indent_level_ + 2, ' ') <<
 				"if not run_result['returncode'] == 0:" << std::endl <<
@@ -157,6 +176,10 @@ public:
 	void header() {
 		out_ << R"(#!/usr/bin/env python3
 import math
+import sys
+import logging
+
+log = logging.getLogger(__name__)
 
 import opentuner
 from opentuner import ConfigurationManipulator
