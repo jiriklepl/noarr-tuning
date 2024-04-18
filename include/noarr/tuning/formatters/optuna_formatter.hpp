@@ -50,22 +50,21 @@ def application_tuner(trial: trial_module.Trial):
 	}
 
 	void footer() const {
-		out_ << "  compile_command = f'''" << compile_command_builder_ << "'''" << std::endl;
-		out_ << "  compiled = " << "os.system(compile_command)" << std::endl;
-		out_ << "  if compiled != 0:" << std::endl;
-		out_ << "    return math.inf" << std::endl;
+		out_ << "  compile_command = f'''" << compile_command_builder_ << "'''\n" <<
+			"  compiled = " << "os.system(compile_command)\n" <<
+			"  if compiled != 0:\n" <<
+			"    return math.inf\n";
 
-		out_ << "  run_command = '''" << run_command_builder_ << "'''" <<std::endl;
-		out_ << "  start = time.time()" << std::endl;
-		out_ << "  run_result = subprocess.run(run_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)" << std::endl;
-		out_ << "  end = time.time()" << std::endl;
+		out_ << "  run_command = '''" << run_command_builder_ << "'''\n" <<
+			"  start = time.time()\n" <<
+			"  run_result = subprocess.run(run_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)\n" <<
+			"  end = time.time()\n";
 
-		out_ << "  if run_result.returncode != 0:" << std::endl;
-		out_ << "    return math.inf" << std::endl;
+		out_ << "  if run_result.returncode != 0:\n" <<
+			"    return math.inf\n";
 
-		out_ << "  run_time = end - start" << std::endl;
-
-		out_ << "  " << measure_command_ << std::endl;
+		out_ << "  run_time = end - start\n" <<
+			"  " << measure_command_ << "\n";
 
 		out_ << R"(
 if __name__ == '__main__':
@@ -84,7 +83,7 @@ if __name__ == '__main__':
 		auto value = "{" + name_ + "}";
 
 		compile_command_builder_.add_define(name_, value);
-		out_ << "  " << name_ << " = trial.suggest_categorical('" << name_ << "', range(" << par.num_ << "))" << std::endl;
+		out_ << "  " << name_ << " = trial.suggest_categorical('" << name_ << "', range(" << par.num_ << "))\n";
 	}
 
 	void format(std::string_view name, const permutation_parameter &par) {
@@ -96,7 +95,7 @@ if __name__ == '__main__':
 		auto value = "{" + name_ + "}";
 
 		compile_command_builder_.add_define(name_, value);
-		out_ << "  " << name_ << " = trial.suggest_categorical('" << name_ << "', list(map(lambda x: ','.join(x), itertools.permutations(map(str, range(" << par.num_ << "))))))" << std::endl;
+		out_ << "  " << name_ << " = trial.suggest_categorical('" << name_ << "', list(map(lambda x: ','.join(x), itertools.permutations(map(str, range(" << par.num_ << "))))))\n";
 	}
 
 	template<class Start, class End, class Step>
@@ -109,7 +108,7 @@ if __name__ == '__main__':
 		auto value = "{" + name_ + "}";
 
 		compile_command_builder_.add_define(name_, value);
-		out_ << "  " << name_ << " = trial.suggest_int('" << name_ << "', " << par.min_ << ", " << par.max_ << ", " << par.step_ << ")" << std::endl;
+		out_ << "  " << name_ << " = trial.suggest_int('" << name_ << "', " << par.min_ << ", " << par.max_ << ", " << par.step_ << ")\n";
 	}
 };
 

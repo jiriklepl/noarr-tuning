@@ -10,7 +10,7 @@
 #include <atf.hpp>
 
 #include "../builders.hpp"
-#include "../formatters.hpp"
+#include "../formatter.hpp"
 #include "../macros.hpp"
 
 #define NOARR_ATF_TP(name) (&*NOARR_TUNING_PARAMETER_DEFINITION(name))

@@ -2,6 +2,7 @@
 #define NOARR_TUNING_BUILDERS_HPP
 
 #include <ostream>
+#include <sstream>
 #include <string_view>
 
 // TODO: fix issues with string literals -> use std::string and std::string_view instead (probably)
@@ -162,10 +163,9 @@ public:
 	}
 
 	std::string to_string() const {
-		return std::string("cmake -E make_directory ") + build_dir_ +
-			" && cd " + build_dir_ +
-			" && cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS=" + quote_ + flags_ + quote_ + ' ' + cmake_file_ +
-			" && cmake --build . --target " + target_;
+		std::ostringstream out;
+		print(out);
+		return out.str();
 	}
 
 private:

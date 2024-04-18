@@ -8,6 +8,6 @@ fi
 
 mkdir -p build && cd build
 cmake -DCMAKE_BUILD_TYPE=Debug .. -DCMAKE_CXX_FLAGS="-DATF_HOME=\"$ATF_HOME\" $CMAKE_CXX_FLAGS"
-cmake --build . -j"$(nproc)"
+cmake --build . -j"$(nproc)" --target atf_test_direct
 
 ./atf_test_direct
