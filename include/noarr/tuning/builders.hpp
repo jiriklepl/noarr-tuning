@@ -158,7 +158,7 @@ public:
 		return out <<
 			"cmake -E make_directory " << build_dir_ <<
 			" && cd " << build_dir_ <<
-			" && cmake -DCMAKE_BUILD_TYPE=Release" <<
+			" && cmake -DCMAKE_BUILD_TYPE=Release " << cmake_file_ <<
 			" && cmake --build . --target " << target_ << " -- -B" << " CXX_DEFINES=" << quote_ << flags_ << quote_ << " ";
 	}
 
