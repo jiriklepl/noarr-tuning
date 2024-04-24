@@ -159,7 +159,7 @@ public:
 			"cmake -E make_directory " << build_dir_ <<
 			" && cd " << build_dir_ <<
 			" && cmake -DCMAKE_BUILD_TYPE=Release" <<
-			" && cmake --build . --target " << target_ << " -- -B" << " CXX_DEFINES=" << quote_ << flags_ << quote_;
+			" && cmake --build . --target " << target_ << " -- -B" << " CXX_DEFINES=" << quote_ << flags_ << quote_ << " ";
 	}
 
 	std::string to_string() const {
