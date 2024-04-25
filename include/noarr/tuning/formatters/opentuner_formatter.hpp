@@ -83,7 +83,7 @@ public:
 			indent(indent_level_ + 2) << "config = desired_result.configuration.data\n";
 	}
 
-	void footer() const {
+	void footer() {
 		out_ <<
 			indent(indent_level_ + 2) << "compile_result = self.call_program(f'''" << compile_command_builder_ << "''')\n" <<
 
@@ -93,11 +93,10 @@ public:
 #endif
 
 			indent(indent_level_ + 2) << "if not compile_result['returncode'] == 0:\n" <<
-			indent(indent_level_ + 4) << "return Result(state='ERROR', time=math.inf)\n" <<
-
 #if defined(NOARR_TUNING_VERBOSE) && NOARR_TUNING_VERBOSE >= 2
 			indent(indent_level_ + 4) << "log.info(f'''Compile stderr: {compile_result['stderr']}''')\n" <<
 #endif
+			indent(indent_level_ + 4) << "return Result(state='ERROR', time=math.inf)\n" <<
 
 			indent(indent_level_ + 2) << "run_cmd = '" << run_command_builder_ << '\'' << "\n" <<
 

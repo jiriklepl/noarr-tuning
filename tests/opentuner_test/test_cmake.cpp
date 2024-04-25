@@ -2,7 +2,7 @@
 
 #define SPECIFIC_TUNING_BEGIN(...) NOARR_TUNE_BEGIN(noarr::tuning::opentuner_formatter( \
 		std::cout, \
-		noarr::tuning::cmake_compile_command_builder("../..", "build", "opentuner_test_cmake_kernel"), \
+		noarr::tuning::cmake_compile_command_builder("..", "build", "opentuner_test_cmake_kernel"), \
 		noarr::tuning::direct_run_command_builder("build/opentuner_test_cmake_kernel", "../matrices 512"), \
 		"return Result(time=int(run_result['stderr'].split()[2]))"))
 
