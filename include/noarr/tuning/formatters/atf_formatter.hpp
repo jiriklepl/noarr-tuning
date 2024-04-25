@@ -31,7 +31,7 @@ public:
 	constexpr void header() const noexcept {}
 
 	template<class ...Pars>
-	void footer(Pars &&...parameters) const noexcept {
+	void footer(Pars &&...parameters) {
 		auto compile_script = compile_command_builder_.to_string();
 		auto run_script = run_command_builder_.to_string();
 

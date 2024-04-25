@@ -49,7 +49,7 @@ def application_tuner(trial: trial_module.Trial):
 )";
 	}
 
-	void footer() const {
+	void footer() {
 		out_ << "  compile_command = f'''" << compile_command_builder_ << "'''\n" <<
 			"  compiled = " << "os.system(compile_command)\n" <<
 			"  if compiled != 0:\n" <<
