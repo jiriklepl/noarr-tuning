@@ -168,10 +168,11 @@ static_assert(IsCompileCommandBuilder<direct_compile_command_builder>);
 
 class cmake_compile_command_builder {
 public:
-	cmake_compile_command_builder(std::filesystem::path cmake_lists_path, std::filesystem::path build_dir, std::string_view target, std::string_view quote = "\'")
+	cmake_compile_command_builder(std::filesystem::path cmake_lists_path, std::filesystem::path build_dir, std::string_view target, std::string_view flags = "", std::string_view quote = "\'")
 		: cmake_lists_path_(cmake_lists_path)
 		, build_dir_(build_dir)
 		, target_(target)
+		, flags_(flags)
 		, quote_(quote)
 	{}
 
@@ -214,7 +215,8 @@ public:
 				"cmake -E make_directory " << build_dir_ << "; " <<
 				"cmake -S " << cmake_lists_path_ <<
 				" -B " << build_dir_ <<
-				" -DCMAKE_BUILD_TYPE=Release; ";
+				" -DCMAKE_BUILD_TYPE=Release" <<
+				" -DCMAKE_CXX_FLAGS=" << quote_ << flags_ << quote_ << ";";
 		}
 
 		if constexpr (UseDefines) {
@@ -254,6 +256,7 @@ private:
 	std::filesystem::path cmake_lists_path_;
 	std::filesystem::path build_dir_;
 	std::string target_;
+	std::string flags_;
 	std::vector<std::string> includes_;
 	std::vector<std::pair<std::string, std::string>> defines_;
 	std::string quote_;
