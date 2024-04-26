@@ -21,7 +21,7 @@
 #define NOARR_TUNING_PARAMETER_STRUCT_CONST(parameter_name) \
 	struct NOARR_TUNING_PARAMETER_NAME(parameter_name) { static constexpr const char *name= #parameter_name; }
 
-#if defined(NOARR_PASS_BY_DEFINE) && !defined(NOARR_TUNE)
+#if !defined(NOARR_TUNE)
 #define NOARR_TUNING_PARAMETER_STRUCT(name) \
 	NOARR_TUNING_PARAMETER_STRUCT_PASS_BY_DEFINE(name)
 #else

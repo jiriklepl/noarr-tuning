@@ -218,18 +218,7 @@ public:
 	}
 
 	template<bool UseDefines = true>
-	std::ostream &print(std::ostream &out) {
-		if (first_) {
-			first_ = false;
-
-			out <<
-				"cmake -E make_directory " << build_dir_ << "; " <<
-				"cmake -S " << cmake_lists_path_ <<
-				" -B " << build_dir_ <<
-				" -DCMAKE_BUILD_TYPE=Release" <<
-				" -DCMAKE_CXX_FLAGS=" << quote_ << flags_ << quote_ << ";";
-		}
-
+	std::ostream &print(std::ostream &out) const {
 		if constexpr (UseDefines) {
 			out <<
 				"cmake --build " << build_dir_ <<
@@ -257,7 +246,7 @@ public:
 	}
 
 	template<bool UseDefines = true>
-	std::string to_string() {
+	std::string to_string() const {
 		std::ostringstream out;
 		print<UseDefines>(out);
 		return out.str();
@@ -271,7 +260,6 @@ private:
 	std::vector<std::string> includes_;
 	std::vector<std::pair<std::string, std::string>> defines_;
 	std::string quote_;
-	bool first_ = true;
 };
 
 static_assert(IsCompileCommandBuilder<cmake_compile_command_builder>);

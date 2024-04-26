@@ -73,9 +73,7 @@ public:
 		, measure_command_(measure_command)
 
 		, indent_level_(indent_level)
-	{
-		compile_command_builder_.add_flag("-DNOARR_PASS_BY_DEFINE");
-	}
+	{}
 
 	void header() const {
 		out_ <<

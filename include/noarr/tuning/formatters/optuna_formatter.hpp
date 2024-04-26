@@ -25,9 +25,7 @@ struct optuna_formatter {
 		, compile_command_builder_(std::move(compile_command_builder))
 		, run_command_builder_(std::move(run_command_builder))
 		, measure_command_(measure_command)
-	{
-		compile_command_builder_.add_flag("-DNOARR_PASS_BY_DEFINE");
-	}
+	{}
 
 	void header() const {
 		out_ << R"(#!/usr/bin/env python3

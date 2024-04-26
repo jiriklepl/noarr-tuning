@@ -24,9 +24,7 @@ public:
 		: abort_condition_(std::move(abort_condition))
 		, compile_command_builder_(std::move(compile_command_builder))
 		, run_command_builder_(std::move(run_command_builder))
-	{
-		compile_command_builder_.add_flag("-DNOARR_PASS_BY_DEFINE");
-	}
+	{}
 
 	constexpr void header() const noexcept {}
 
