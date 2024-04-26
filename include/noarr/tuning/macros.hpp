@@ -6,13 +6,16 @@
 // TODO: BEGIN and END asserts
 // TODO: CONSTRAINED_PAR assert
 
+#define NOARR_TUNING_STRINGIFY2(x) #x
+#define NOARR_TUNING_STRINGIFY(x) NOARR_TUNING_STRINGIFY2(x)
+
 #define NOARR_TUNING_PARAMETER(name) NOARR_TUNING_PARAMETER_ ## name
 #define NOARR_TUNING_PARAMETER_DEFINITION(name) NOARR_TUNING_PARAMETER_DEFINITION_ ## name
 #define NOARR_TUNING_PARAMETER_MEMBER(name, ...) \
 	decltype(::noarr::tuning::interpret(::noarr::tuning::name_holder<NOARR_TUNING_PARAMETER(name)>() __VA_OPT__(,) __VA_ARGS__)) \
 	name{::noarr::tuning::name_holder<NOARR_TUNING_PARAMETER(name)>() __VA_OPT__(,) __VA_ARGS__}
 
-#ifdef NOARR_PASS_BY_DEFINE
+#ifndef NOARR_TUNE
 
 #define NOARR_TUNE_BEGIN(formatter, ...) \
 	static_assert(true, "NOARR_TUNE_BEGIN() must be called at the beginning of the tuning block.")
@@ -50,7 +53,7 @@
 #define NOARR_TUNE_END(...) \
 	NOARR_TUNE_PAR(NOARR_footer, ::noarr::tuning::end __VA_OPT__(,) __VA_ARGS__)
 
-#endif // NOARR_PASS_BY_DEFINE
+#endif // NOARR_TUNE
 
 #define NOARR_TUNE_CONST(parameter_name, ...) \
 	struct NOARR_TUNING_PARAMETER(parameter_name) { static constexpr const char *name= #parameter_name; }; \

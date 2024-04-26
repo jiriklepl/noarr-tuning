@@ -73,9 +73,7 @@ public:
 		, measure_command_(measure_command)
 
 		, indent_level_(indent_level)
-	{
-		compile_command_builder_.add_define("NOARR_PASS_BY_DEFINE");
-	}
+	{ }
 
 	void header() const {
 		out_ <<
@@ -85,7 +83,12 @@ public:
 
 	void footer() {
 		out_ <<
+#ifdef NOARR_TUNING_DEFINES_FILE
+			indent(indent_level_ + 2) << "open('" NOARR_TUNING_STRINGIFY(NOARR_TUNING_DEFINES_FILE) "', 'w').write(f'''" << compile_command_builder_.defines_file() << "''')\n" <<
+			indent(indent_level_ + 2) << "compile_result = self.call_program(f'''" << compile_command_builder_.template to_string<false>() << "''')\n" <<
+#else
 			indent(indent_level_ + 2) << "compile_result = self.call_program(f'''" << compile_command_builder_ << "''')\n" <<
+#endif
 
 #if defined(NOARR_TUNING_VERBOSE) && NOARR_TUNING_VERBOSE >= 1
 			indent(indent_level_ + 2) << "log.info(f'''Compile time: {compile_result['time']}''')\n" <<

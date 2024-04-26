@@ -25,9 +25,7 @@ struct optuna_formatter {
 		, compile_command_builder_(std::move(compile_command_builder))
 		, run_command_builder_(std::move(run_command_builder))
 		, measure_command_(measure_command)
-	{
-		compile_command_builder_.add_define("NOARR_PASS_BY_DEFINE");
-	}
+	{ }
 
 	void header() const {
 		out_ << R"(#!/usr/bin/env python3
@@ -50,7 +48,14 @@ def application_tuner(trial: trial_module.Trial):
 	}
 
 	void footer() {
-		out_ << "  compile_command = f'''" << compile_command_builder_ << "'''\n" <<
+		out_ <<
+#ifdef NOARR_TUNING_DEFINES_FILE
+			"  open('" NOARR_TUNING_STRINGIFY(NOARR_TUNING_DEFINES_FILE) "', 'w').write(f'''" <<
+			compile_command_builder_.defines_file() << "''')\n" <<
+			"  compile_command = f'''" << compile_command_builder_.template to_string<false>() << "'''\n" <<
+#else
+			"  compile_command = f'''" << compile_command_builder_ << "'''\n" <<
+#endif
 			"  compiled = " << "os.system(compile_command)\n" <<
 			"  if compiled != 0:\n" <<
 			"    return math.inf\n";
