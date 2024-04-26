@@ -78,6 +78,7 @@ static_assert(IsRunCommandBuilder<direct_run_command_builder>);
 template<class T>
 concept IsCompileCommandBuilder = requires(std::remove_cvref_t<T> builder, const char *include, const char *define, std::ostream &out) {
 	{ builder.add_include(include) } -> std::same_as<void>;
+	{ builder.add_flag(define) } -> std::same_as<void>;
 	{ builder.add_define(define) } -> std::same_as<void>;
 	{ builder.add_define(define, define) } -> std::same_as<void>;
 	{ builder.print(out) } -> std::same_as<std::ostream &>;
@@ -102,6 +103,11 @@ public:
 
 	void add_include(std::string_view include) {
 		includes_.emplace_back(include);
+	}
+
+	void add_flag(std::string_view flag) {
+		flags_ += ' ';
+		flags_ += flag;
 	}
 
 	void add_define(std::string_view define) {
@@ -133,7 +139,7 @@ public:
 	template<bool UseDefines = true>
 	std::ostream &print(std::ostream &out) const {
 		if constexpr (UseDefines) {
-			out << compiler_ << flags_;
+			out << compiler_ << " " << flags_;
 			for (const auto include : includes_) {
 				out << " -I" << include;
 			}
@@ -144,7 +150,7 @@ public:
 				}
 			}
 		} else {
-			out << compiler_ << flags_;
+			out << compiler_ << " " << flags_;
 		}
 
 		return out;
@@ -178,6 +184,11 @@ public:
 
 	void add_include(std::string_view include) {
 		includes_.emplace_back(include);
+	}
+
+	void add_flag(std::string_view flag) {
+		flags_ += ' ';
+		flags_ += flag;
 	}
 
 	void add_define(std::string_view define) {
