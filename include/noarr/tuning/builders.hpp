@@ -118,9 +118,17 @@ public:
 		defines_.emplace_back(define, value);
 	}
 
-	std::string defines_file() const {
-		std::ostringstream out;
+	std::ostream &prepare(std::ostream &out) const {
+		return out;
+	}
 
+	std::string prepare() const {
+		std::ostringstream out;
+		prepare(out);
+		return out.str();
+	}
+
+	std::ostream &defines_file(std::ostream &out) const {
 		for (const auto include : includes_) {
 			out << "#include " << include << '\n';
 		}
@@ -133,6 +141,12 @@ public:
 			out << '\n';
 		}
 
+		return out;
+	}
+
+	std::string defines_file() const {
+		std::ostringstream out;
+		defines_file(out);
 		return out.str();
 	}
 
@@ -199,9 +213,20 @@ public:
 		defines_.emplace_back(define, value);
 	}
 
-	std::string defines_file() const {
-		std::ostringstream out;
+	std::ostream &prepare(std::ostream &out) const {
+		return out <<
+			"cmake -S " << cmake_lists_path_ <<
+			" -B " << build_dir_ <<
+			" -DCMAKE_CXX_FLAGS=" << quote_ << flags_ << quote_;
+	}
 
+	std::string prepare() const {
+		std::ostringstream out;
+		prepare(out);
+		return out.str();
+	}
+
+	std::ostream &defines_file(std::ostream &out) const {
 		for (const auto include : includes_) {
 			out << "#include " << include << '\n';
 		}
@@ -214,6 +239,12 @@ public:
 			out << '\n';
 		}
 
+		return out;
+	}
+
+	std::string defines_file() const {
+		std::ostringstream out;
+		defines_file(out);
 		return out.str();
 	}
 

@@ -4,9 +4,7 @@
 #include <utility>
 #include <type_traits>
 
-#include <noarr/structures_extended.hpp>
-#include <noarr/structures/extra/traverser.hpp>
-#include <noarr/structures/interop/bag.hpp>
+#include <noarr/traversers.hpp>
 
 #include <noarr/tuning/macros.hpp>
 #include <noarr/tuning/tuning.hpp>
@@ -16,6 +14,14 @@
 #include <noarr/tuning/formatters/dummy_formatter.hpp>
 
 #define SPECIFIC_TUNING_BEGIN(...) NOARR_TUNE_BEGIN(noarr::tuning::dummy_formatter())
+
+#else
+
+#ifndef SPECIFIC_FORMATTER
+#error "SPECIFIC_FORMATTER not defined"
+#endif
+
+#include NOARR_TUNING_STRINGIFY(SPECIFIC_FORMATTER)
 
 #endif
 
@@ -29,6 +35,11 @@
 
 #define SPECIFIC_TUNING_END(...) NOARR_TUNE_END()
 
+#endif
+
+#ifdef NOARR_TUNING_DEFINES_FILE
+#define WITH_ARROWS(arg) <arg>
+#include WITH_ARROWS(NOARR_TUNING_DEFINES_FILE)
 #endif
 
 using num_t = float;
