@@ -15,7 +15,7 @@
 namespace noarr::tuning {
 
 class opentuner_manipulator_formatter {
-	static constexpr std::string indent(std::size_t level) {
+	static std::string indent(std::size_t level) {
 		return std::string(level, ' ');
 	}
 public:
@@ -62,7 +62,7 @@ static_assert(IsTunerFormatter<opentuner_manipulator_formatter>);
 
 template<IsCompileCommandBuilder CompileCommandBuilder, IsRunCommandBuilder RunCommandBuilder>
 class opentuner_run_formatter {
-	static constexpr std::string indent(std::size_t level) {
+	static std::string indent(std::size_t level) {
 		return std::string(level, ' ');
 	}
 public:
