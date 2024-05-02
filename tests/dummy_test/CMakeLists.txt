@@ -23,6 +23,3 @@ include_directories("${Noarr_SOURCE_DIR}/include")
 add_executable(dummy_test test.cpp)
 target_include_directories(dummy_test PUBLIC ../../include)
 target_compile_definitions(dummy_test PUBLIC NOARR_TUNE)
-
-add_executable(dummy_test_kernel test.cpp)
-target_include_directories(dummy_test_kernel PUBLIC ../../include)
