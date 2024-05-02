@@ -55,7 +55,7 @@ jobs:
       run: |
         set -e
         source prepare_env.sh
-        cmake --build build --config ${{matrix.BUILD_TYPE}} -j$(nproc)
+        cmake --build build --config ${{matrix.BUILD_TYPE}} -j$(nproc) --target optuna_test_cmake
 
     - name: Tune
       working-directory: ${{github.workspace}}/tests/optuna_test
