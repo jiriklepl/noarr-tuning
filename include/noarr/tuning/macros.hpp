@@ -3,9 +3,6 @@
 
 #include "tuning.hpp"
 
-// TODO: BEGIN and END asserts
-// TODO: CONSTRAINED_PAR assert
-
 #define NOARR_TUNING_STRINGIFY2(x) #x
 #define NOARR_TUNING_STRINGIFY(x) NOARR_TUNING_STRINGIFY2(x)
 
